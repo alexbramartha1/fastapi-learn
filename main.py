@@ -1,14 +1,18 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, status
+from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, status, Header, Form, Body
 from fastapi.middleware.cors import CORSMiddleware
 from models.masyarakat import *
+from models.gamelanbali import *
+from models.instrumen import *
 import os
 from datetime import timedelta, datetime, timezone
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 import re
-from typing import Annotated
+from typing import Annotated, List, Optional
 from jwt.exceptions import InvalidTokenError, ExpiredSignatureError, PyJWTError
+from typing import Annotated
+import json
 
 from databases.masyarakatdatabase import (
     fetch_one_user, 
@@ -24,11 +28,41 @@ from databases.masyarakatdatabase import (
 
 from databases.sanggardatabase import (
     fetch_all_sanggar,
+    create_sanggar_data,
+    delete_sanggar_data,
+    update_sanggar_data,
+    fetch_one_sanggar,
+    update_sanggar_photo,
+    fetch_sanggar_specific,
+    fetch_sanggar_specific_by_id_creator,
+)
+
+from databases.instrumendatabase import (
+    fetch_all_instrumen,
+    create_instrumen_data,
+    update_instrumen_data,
+    fetch_one_instrumen,
+    fetch_byname_instrumen,
+    delete_instrument_bali,
+    fetch_image_instrumen,
+    fetch_tridi_instrumen,
+    approval_instrunmen_data,
+)
+
+from databases.gamelanbalidatabase import (
+    fetch_all_gamelan,
+    create_gamelan_data,
+    delete_gamelan_bali,
+    update_gamelan_data,
+    fetch_specific_gamelan,
+    fetch_byname_gamelan,
+    approval_gamelan_data,
+    fetch_all_instrument_by_gamelan_array
 )
 
 SECRET_KEY = "letsmekillyou"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 1
+ACCESS_TOKEN_EXPIRE_MINUTES = 10000
 
 app = FastAPI()
 
@@ -70,7 +104,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: str):
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -88,6 +122,7 @@ async def get_current_user(token: str):
         user = await get_user(email=token_data.email)
         if user is None:
             raise credentials_exception
+        
     except ExpiredSignatureError:
         raise HTTPException(status_code=400, detail="Token has expired, please login again!")
     except InvalidTokenError:
@@ -126,17 +161,18 @@ async def login_for_access_token(
             "nama": str(user.nama),
             "sub": str(user.email),
             "foto_profile": str(user.foto_profile),
+            "test": str(user.test)
             }, 
         expires_delta=access_token_expires
     )
     
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(access_token=access_token, user_id=user.test, nama=user.nama, foto_profile=user.foto_profile, email=user.email, token_type="bearer")
 
 @app.get("/")
 async def read_root():
     return {"message": "Hello, world!"}
 
-@app.get("/api/userdata")
+@app.get("/api/userdata/getalluser")
 async def get_all_users(current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         response = await fetch_all_user()
@@ -145,11 +181,12 @@ async def get_all_users(current_user: UserInDB = Depends(get_current_user)):
         raise HTTPException(404, "Empty Users Data")
 
 @app.get("/api/userdata/getallbyname/{name}")
-async def get_all_user_by_name(name: str):
-    response = await fetch_all_user_with_name(name)
-    if response:
-        return response
-    raise HTTPException(404, f"There is no user with this name {name}")
+async def get_all_user_by_name(name: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_all_user_with_name(name)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no user with this name {name}")
 
 @app.get("/api/userdata/getspecific/{email}")
 async def get_specific_by_email(email: str):
@@ -162,17 +199,18 @@ async def get_specific_by_email(email: str):
         raise HTTPException(404, f"Email already exists")
     raise HTTPException(404, f"Email not Valid!")
 
-@app.get("/api/userdata/{id}", response_model=UserData)
-async def get_user_by_id(id: str):
-    response = await fetch_one_user(id)
-    if response:
-        return response
-    raise HTTPException(404, f"There is no user with this name {id}")
+@app.get("/api/userdata/getuserbyid/{id}", response_model=UserData)
+async def get_user_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_one_user(id)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no user with this name {id}")
 
-@app.post("/api/userdata")
-async def create_data_user(nama: str, email: str, password: str):
+@app.post("/api/userdata/registeruser")
+async def create_data_user(nama: Annotated[str, Form()], email: Annotated[str, Form()], password: Annotated[str, Form()]):
     await get_specific_by_email(email)
-
+    
     password_hashed = get_password_hash(password)
 
     response = await create_user_data(nama, email, password_hashed)
@@ -181,36 +219,45 @@ async def create_data_user(nama: str, email: str, password: str):
     raise HTTPException(400, "Something went wrong!")
 
 @app.put("/api/userdata/updateprofile/{id}", response_model=UserData)
-async def update_data_user(id: str, email: str, nama: str):
-    await get_specific_by_email(email)
+async def update_data_user(id: str, email: Annotated[str, Form()] = None, nama: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        if email:
+            await get_specific_by_email(email)
 
-    response = await update_user_data(id, email, nama)
-    if response:
-        return response
-    raise HTTPException(404, f"There is no user with this name {id}")
+        response = await update_user_data(id, email, nama)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no user with this name {id}")
 
-@app.post("/api/files/")
-async def create_file(id: str, files: list[UploadFile]):
-    try: 
-        saved_files = []
-        file_paths = []
+@app.post("/api/files/uploadphotoprofile/{id}")
+async def upload_photo_profile_pengguna(id: str, files: list[UploadFile], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        if os.path.exists(current_user.foto_profile):
+            os.remove(current_user.foto_profile)
+            print(f"The file {current_user.foto_profile} has been deleted.")
+        else:
+            print(f"The file {current_user.foto_profile} does not exist.")
 
-        for file in files:
-            file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images", file.filename)
+        try: 
+            saved_files = []
+            file_paths = []
+
+            for file in files:
+                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\profileimage", file.filename)
+                
+                with open(file_path, "wb") as f:
+                    f.write(file.file.read())
+                
+                saved_files.append(file.filename)
+                file_paths.append(str(file_path))
+
+            image_path = file_paths[0]
+            await update_photo_user(id, image_path)
+
+            return {"message": "Files saved successfully", "files": saved_files}
             
-            with open(file_path, "wb") as f:
-                f.write(file.file.read())
-            
-            saved_files.append(file.filename)
-            file_paths.append(str(file_path))
-
-        image_path = file_paths[0]
-        await update_photo_user(id, image_path)
-
-        return {"message": "Files saved successfully", "files": saved_files}
-        
-    except Exception as e:
-        return {"message": f"Error occurred: {str(e)}"}
+        except Exception as e:
+            return {"message": f"Error occurred: {str(e)}"}
 
 @app.put("/api/userdata/{id}", response_model=UserData)
 async def update_photo_user(id: str, foto: str):
@@ -219,18 +266,390 @@ async def update_photo_user(id: str, foto: str):
         return response
     raise HTTPException(404, f"There is no user with this name {id}")
 
-@app.delete("/api/userdata/{id}")
-async def delete_data_user(id: str):
-    response = await delete_user_data(id)
-    if response:
-        return "Successfully deleted user!"
-    raise HTTPException(404, f"There is no user with this name {id}")
+@app.delete("/api/userdata/deleteuser/{id}")
+async def delete_data_user(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await delete_user_data(id)
+        if response == True:
+            return "Successfully deleted user!"
+        raise HTTPException(404, f"There is no user with this name {id}")
 
-@app.get("/api/sanggardata/fetchall")
-async def fetch_sanggar_all_data(current_user: UserInDB = Depends(get_current_user)):
+@app.post("/api/sanggardata/create")
+async def create_sanggar(files: list[UploadFile], nama_sanggar: Annotated[str, Form()], alamat: Annotated[str, Form()], no_telepon: Annotated[str, Form()], nama_jalan: Annotated[str, Form()], desa: Annotated[str, Form()], kecamatan: Annotated[str, Form()], kabupaten: Annotated[str, Form()], provinsi: Annotated[str, Form()], kode_pos: Annotated[str, Form()], current_user: UserInDB = Depends(get_current_user)):
+
+    if current_user:
+        print(current_user)
+        id_creator = current_user.test
+        
+        try: 
+            saved_files = []
+            file_paths = []
+
+            for file in files:
+                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\sanggarimage", file.filename)
+                
+                with open(file_path, "wb") as f:
+                    f.write(file.file.read())
+                
+                saved_files.append(file.filename)
+                file_paths.append(str(file_path))
+
+            image_path = file_paths[0]
+            response = await create_sanggar_data(image_path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, id_creator)
+
+            return {"message": "Data saved successfully", "response": response}
+            
+        except Exception as e:
+            return {"message": f"Error occurred: {str(e)}"}
+
+@app.get("/api/sanggardata/getone/{id}")
+async def get_sanggar_by_id(id: str):
+    response = await fetch_one_sanggar(id)
+    if response:
+        return response
+    raise HTTPException(404, "There is no sanggar with this id!")
+
+@app.get("/api/sanggardata/get")
+async def get_all_sanggar(current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         response = await fetch_all_sanggar()
         if response:
             return response
-        raise HTTPException(404, "Empty Sanggar Data")
-    
+        raise HTTPException(404, "There is no sanggar data!")
+
+@app.put("/api/sanggardata/update/{id}")
+async def update_data_sanggar(id: str, nama_sanggar: Annotated[str, Form()] = None, alamat: Annotated[str, Form()] = None, no_telepon: Annotated[str, Form()] = None, nama_jalan: Annotated[str, Form()] = None, desa: Annotated[str, Form()] = None, kecamatan: Annotated[str, Form()] = None, kabupaten: Annotated[str, Form()] = None, provinsi: Annotated[str, Form()] = None, kode_pos: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await update_sanggar_data(id, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no user with this name {id}")
+
+@app.delete("/api/sanggardata/delete/{id}")
+async def delete_data_sanggar(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await delete_sanggar_data(id)
+        if response == True:
+            return "Successfully deleted sanggar!"
+        raise HTTPException(404, f"There is no user with this name {id}")
+
+@app.post("/api/sanggardata/image/{id}")
+async def update_sanggar_image(id: str, files: list[UploadFile], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        image = await get_sanggar_by_id(id)
+        if os.path.exists(image):
+            os.remove(image)
+            print(f"The file {image} has been deleted.")
+        else:
+            print(f"The file {image} does not exist.")
+
+        try: 
+            saved_files = []
+            file_paths = []
+
+            for file in files:
+                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images", file.filename)
+                
+                with open(file_path, "wb") as f:
+                    f.write(file.file.read())
+                
+                saved_files.append(file.filename)
+                file_paths.append(str(file_path))
+
+            image_path = file_paths[0]
+            await update_photo_sanggar(id, image_path)
+
+            return {"message": "Files saved successfully", "files": saved_files}
+            
+        except Exception as e:
+            return {"message": f"Error occurred: {str(e)}"}
+
+@app.put("/api/sanggardata/photoupdate/{id}")
+async def update_photo_sanggar(id: str, foto: str):
+    response = await update_sanggar_photo(id, foto)
+    if response:
+        return response
+    raise HTTPException(404, f"There is no user with this name {id}")
+
+@app.get("/api/sanggardata/getbyname/{name}")
+async def get_specific_by_name_sanggar(name: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_sanggar_specific(name)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no sanggar data with name {name}")
+
+@app.get("/api/sanggardata/getbyidcreator/{id}")
+async def get_specific_sanggar_by_id_creator(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_sanggar_specific_by_id_creator(id)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no sanggar data with id ccreator: {id}")
+
+@app.get("/api/instrumendata/getspecificbyname/{nama_instrument}")
+async def fetch_instrumen_by_name(nama_instrument: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_byname_instrumen(nama_instrument)
+
+        if response:
+            return response
+        raise HTTPException(404, f"There is no instrument data with name {nama_instrument}")
+
+@app.get("/api/instrumendata/getall")
+async def fetch_all_data_instrumen(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_all_instrumen()
+
+        if response:
+            return response
+        raise HTTPException(404, "There is no instrument data!")
+
+@app.post("/api/instrumendata/create")
+async def create_data_instrumen(nama: Annotated[str, Form()], desc: Annotated[str, Form()], fungsi: Annotated[str, Form()], files_image: list[UploadFile], files_tridi: list[UploadFile], bahan: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        try: 
+            saved_files_image = []
+            file_paths_image = []
+
+            for file_image in files_image:
+                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\instrumenimage", file_image.filename)
+                
+                with open(file_path, "wb") as f:
+                    f.write(file_image.file.read())
+                
+                saved_files_image.append(file_image.filename)
+                file_paths_image.append(str(file_path))
+
+            image_path = file_paths_image[0]
+
+            saved_files_tridi = []
+            file_paths_tridi = []
+
+            for file_tridi in files_tridi:
+                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\instrumentridi", file_tridi.filename)
+                
+                with open(file_path, "wb") as f:
+                    f.write(file_tridi.file.read())
+                
+                saved_files_tridi.append(file_tridi.filename)
+                file_paths_tridi.append(str(file_path))
+
+            tridi_path = file_paths_tridi[0]
+
+            response = await create_instrumen_data(nama, desc, tridi_path, fungsi, image_path, bahan)
+
+            if response:
+                return {"message": "Data saved successfully", "response": response}
+            raise HTTPException(400, "Something went wrong!")
+            
+        except Exception as e:
+            return {"message": f"Error occurred: {str(e)}"}
+
+@app.put("/api/instrumendata/approval/{id}")
+async def update_data_approval_instrumen_data(id: str, status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await approval_instrunmen_data(id, status)
+
+        if response: 
+            return response
+        raise HTTPException(404, f"There is no instrument data with id {id}")
+
+@app.put("/api/instrumendata/update/{id}")
+async def update_data_instrumen(id: str, nama: Annotated[str, Form()] = None, desc: Annotated[str, Form()] = None, fungsi: Annotated[str, Form()] = None, files_image: list[UploadFile] = None, files_tridi: list[UploadFile] = None, bahan: Annotated[List[str], Form()] = None, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        try:
+            
+            image_path = None
+            tridi_path = None
+            
+            if files_image:
+                image_past = await get_instrumen_image_by_id(id)
+
+                if os.path.exists(image_past):
+                    os.remove(image_past)
+                    print(f"The file {image_past} has been deleted.")
+                else:
+                    print(f"The file {image_past} does not exist.")
+
+                saved_files_image = []
+                file_paths_image = []
+
+                for file_image in files_image:
+                    file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\instrumenimage", file_image.filename)
+                    
+                    with open(file_path, "wb") as f:
+                        f.write(file_image.file.read())
+                    
+                    saved_files_image.append(file_image.filename)
+                    file_paths_image.append(str(file_path))
+
+                image_path = file_paths_image[0]
+
+            if files_tridi:
+                tridi_past = await get_instrumen_tridi_by_id(id)
+
+                if os.path.exists(tridi_past):
+                    os.remove(tridi_past)
+                    print(f"The file {tridi_past} has been deleted.")
+                else:
+                    print(f"The file {tridi_past} does not exist.")
+
+                saved_files_tridi = []
+                file_paths_tridi = []
+
+                for file_tridi in files_tridi:
+                    file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\instrumentridi", file_tridi.filename)
+                    
+                    with open(file_path, "wb") as f:
+                        f.write(file_tridi.file.read())
+                    
+                    saved_files_tridi.append(file_tridi.filename)
+                    file_paths_tridi.append(str(file_path))
+
+                tridi_path = file_paths_tridi[0]
+
+            if not image_path:
+                image_path = None
+
+            if not tridi_path: 
+                tridi_path = None
+
+            response = await update_instrumen_data(id, nama, desc, fungsi, tridi_path, image_path, bahan)
+            
+            if response:
+                return {"message": "Data saved successfully", "response": response}
+            raise HTTPException(400, "Something went wrong!")
+            
+        except Exception as e:
+            return {"message": f"Error occurred: {str(e)}"}
+
+@app.get("/api/instrumendata/getone/{id}", response_model=InstrumenData)
+async def get_instrumen_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_one_instrumen(id)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no instrument data with this id {id}!")
+
+async def get_instrumen_image_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_image_instrumen(id)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no instrument data with this id {id}!")
+
+async def get_instrumen_tridi_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_tridi_instrumen(id)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no instrument data with this id {id}!")
+
+@app.delete("/api/instrumendata/delete/{id}")
+async def delete_data_instrumen(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await delete_instrument_bali(id)
+        if response == True:
+            return "Successfully deleted instrument!"
+        raise HTTPException(404, f"There is no instrument data with this name {id}")
+
+@app.get("/api/gamelanbali/fetchall")
+async def get_all_gamelan_bali(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_all_gamelan()
+        if response:
+            return response
+        raise HTTPException(404, "There is no data Gamelan Bali")
+
+@app.get("/api/gamelanbali/fetch/specific/{id}")
+async def get_specific_gamelan_bali_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_specific_gamelan(id)
+        if response:
+            return response
+        raise HTTPException(404, "There is no data Gamelan Bali")
+
+@app.get("/api/gamelanbali/fetch/byname/{nama_gamelan}")
+async def get_specific_gamelan_bali_name(nama_gamelan: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_byname_gamelan(nama_gamelan)
+        if response:
+            return response
+        raise HTTPException(404, "There is no data Gamelan Bali")
+
+@app.post("/api/gamelanbali/createdata")
+async def create_gamelan_bali(nama_gamelan: Annotated[str, Form()], golongan: Annotated[str, Form()], description: Annotated[str, Form()], upacara: Annotated[List[str], Form()], audio_gamelan: Annotated[str, Form()], instrument_id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await create_gamelan_data(nama_gamelan, golongan, description, upacara, audio_gamelan, instrument_id)
+
+        if response:
+            return response
+        raise HTTPException(400, "Something went wrong!")
+
+@app.post("/api/gamelandata/uploadaudio")
+async def upload_audio_data(files: list[UploadFile]):
+    try: 
+        saved_files = []
+        file_paths = []
+
+        for file in files:
+            file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\audiogamelan", file.filename)
+            
+            with open(file_path, "wb") as f:
+                f.write(file.file.read())
+            
+            saved_files.append(file.filename)
+            file_paths.append(str(file_path))
+
+        image_path = file_paths[0]
+
+        return image_path
+        
+    except Exception as e:
+        return {"message": f"Error occurred: {str(e)}"}
+
+@app.delete("/api/gamelandata/deletedata/{id}")
+async def delete_data_gamelan_bali(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await delete_gamelan_bali(id)
+        if response == True:
+            return "Successfully deleted gamelan data!"
+        raise HTTPException(404, f"There is no gamelan bali data with id {id}")
+
+@app.delete("/api/gamelandata/deleteaudio/cancel")
+async def delete_audio_cancel(path_audio: Annotated[List[str], Form()]):
+    for path_todelete in path_audio:
+        print(path_todelete)
+        if os.path.exists(path_todelete):
+            os.remove(path_todelete)
+            return f"The file {path_todelete} has been deleted."
+        else:
+            return f"The file {path_todelete} does not exist."
+
+@app.put("/api/gamelandata/updatedata/{id}")
+async def update_data_gamelan_bali(id: str, nama_gamelan: Annotated[str, Form()] = None, golongan: Annotated[str, Form()] = None, description: Annotated[str, Form()] = None, upacara: Annotated[List[str], Form()] = None, audio_gamelan: Annotated[str, Form()] = None, instrument_id: Annotated[List[str], Form()] = None,  current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await update_gamelan_data(id, nama_gamelan, golongan, description, audio_gamelan, instrument_id, upacara)
+
+        if response:
+            return response
+        raise HTTPException(404, f"There is no gamelan data with id {id}")
+
+@app.put("/api/gamelandata/approval/{id}")
+async def update_data_gamelan_bali(id: str, status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await approval_gamelan_data(id, status)
+
+        if response: 
+            return response
+        raise HTTPException(404, f"There is no gamelan data with id {id}")
+
+@app.get("/api/gamelandata/instrumentid/{nama_gamelan}")
+async def get_gamelan_data_with_instrument_attach(nama_gamelan: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_all_instrument_by_gamelan_array(nama_gamelan)
+
+        if response:
+            return response
+        raise HTTPException(404, f"There is no Gamelan Data with name {nama_gamelan}")

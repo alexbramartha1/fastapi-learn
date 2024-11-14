@@ -5,10 +5,14 @@ class SanggarData(BaseModel):
     _id: str
     image: str
     nama_sanggar: str
-    alamat: str
+    alamat_lengkap: str
     no_telepon: str
-    latitude: str = None
-    longitude: str = None
+    nama_jalan: str
+    desa: str
+    kecamatan: str
+    kabupaten: str
+    provinsi: str
+    kode_pos: str
     id_creator: str
 
     class Config:

@@ -3,6 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from bson import ObjectId
+import os
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -21,18 +22,30 @@ async def get_user(email: str):
         }
     })
 
+    print(user_dict)
+    
     if user_dict:
         user_dict["_id"] = str(user_dict["_id"])
-        return UserInDB(**user_dict)
+        print(user_dict)
+        user = UserInDB(
+            _id=user_dict["_id"],
+            nama=user_dict["nama"],
+            email=user_dict["email"],
+            foto_profile=user_dict["foto_profile"],
+            password=user_dict["password"],
+            test=user_dict["_id"]
+        )
+
+        return user
 
     return None
 
-async def fetch_one_user(id):
+async def fetch_one_user(id: str):
     object_id = ObjectId(id)
     document = await collection.find_one({"_id": object_id})
     return document
 
-async def fetch_user_specific(email):
+async def fetch_user_specific(email: str):
     local_part, domain = email.split('@')
 
     document = await collection.find_one({"email": {"$regex": f"^{local_part}@{domain}$", 
@@ -41,7 +54,7 @@ async def fetch_user_specific(email):
     
     return document
 
-async def fetch_all_user_with_name(name):
+async def fetch_all_user_with_name(name: str):
     user = []
     cursor = collection.find({"nama": {"$regex": f"(?i){name}"}})
 
@@ -74,7 +87,7 @@ async def fetch_all_user():
     
     return user
 
-async def create_user_data(nama, email, password):
+async def create_user_data(nama: str, email: str, password: str):
     document: UserData
 
     document = {
@@ -88,25 +101,56 @@ async def create_user_data(nama, email, password):
     
     return {"_id": str(result.inserted_id), "nama": nama, "message": "Data created successfully"}
 
-async def update_user_data(id, email, nama):
+async def update_user_data(id: str, email: str, nama: str):
     object_id = ObjectId(id)
+
+    update_data = {}
+    
+    if nama:
+        update_data["nama"] = nama
+
+    if email:
+        update_data["email"] = email 
+
+    print(update_data["nama"])
+    print(update_data)
+
     await collection.update_one(
         {"_id": object_id},
-        {"$set":{"email":email, "nama":nama}},
+        {"$set": update_data},
     )
 
     document = await collection.find_one({"_id": object_id})
+    
     return document
 
-async def update_user_photo(id, foto):
+async def update_user_photo(id: str, foto: str):
     object_id = ObjectId(id)
     await collection.update_one({"_id": object_id}, {"$set":{"foto_profile": foto}})
     document = await collection.find_one({"_id": object_id})
     return document
 
-async def delete_user_data(id):
+async def delete_user_data(id: str):
     object_id = ObjectId(id)
+    
+    foto_profile = []
+
+    cursor = collection.find({"_id": object_id})
+
+    async for document in cursor:
+        foto_profile_data = document["foto_profile"]
+    
+        foto_profile.append(foto_profile_data)
+
+    for path_todelete_foto in foto_profile:
+        if os.path.exists(path_todelete_foto):
+            os.remove(path_todelete_foto)
+            print(f"The file {path_todelete_foto} has been deleted.")
+        else:
+            print(f"The file {path_todelete_foto} does not exist.")
+    
     await collection.delete_one({"_id": object_id})
+
     return True
 
 # async def delete_user_data(name):
