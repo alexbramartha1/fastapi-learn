@@ -13,6 +13,7 @@ from typing import Annotated, List, Optional
 from jwt.exceptions import InvalidTokenError, ExpiredSignatureError, PyJWTError
 from typing import Annotated
 import json
+import uvicorn
 
 from databases.masyarakatdatabase import (
     fetch_one_user, 
@@ -83,13 +84,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # origins = ['http://localhost:3000']
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins = ["*"],
-#     allow_credentials = True,
-#     allow_methods = ["*"],
-#     allow_headers = ["*"],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = ["*"],
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
+)
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))  # Railway akan menyetujui PORT dari environment
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
