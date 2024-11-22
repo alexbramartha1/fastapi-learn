@@ -259,7 +259,7 @@ async def upload_photo_profile_pengguna(id: str, files: list[UploadFile], curren
             file_paths = []
 
             for file in files:
-                file_path = os.path.join(r"/fastapi-learn/files/images/profileimage", file.filename)
+                file_path = os.path.join(r"/fastapi-learn/files/images", file.filename)
                 
                 with open(file_path, "wb") as f:
                     f.write(file.file.read())
