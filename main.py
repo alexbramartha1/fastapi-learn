@@ -259,7 +259,7 @@ async def upload_photo_profile_pengguna(id: str, files: list[UploadFile], curren
             file_paths = []
 
             for file in files:
-                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\profileimage", file.filename)
+                file_path = os.path.join(r"/fastapi-learn/files/images/profileimage", file.filename)
                 
                 with open(file_path, "wb") as f:
                     f.write(file.file.read())
@@ -302,7 +302,7 @@ async def create_sanggar(files: list[UploadFile], nama_sanggar: Annotated[str, F
             file_paths = []
 
             for file in files:
-                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\sanggarimage", file.filename)
+                file_path = os.path.join(r"/fastapi-learn/files/images/sanggarimage", file.filename)
                 
                 with open(file_path, "wb") as f:
                     f.write(file.file.read())
@@ -351,7 +351,7 @@ async def update_data_sanggar(id: str, files: list[UploadFile] = None, nama_sang
                 file_paths = []
 
                 for file in files:
-                    file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\sanggarimage", file.filename)
+                    file_path = os.path.join(r"/fastapi-learn/files/images/sanggarimage", file.filename)
                     
                     with open(file_path, "wb") as f:
                         f.write(file.file.read())
@@ -428,7 +428,7 @@ async def create_data_instrumen(nama: Annotated[str, Form()], desc: Annotated[st
             file_paths_image = []
 
             for file_image in files_image:
-                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\instrumenimage", file_image.filename)
+                file_path = os.path.join(r"/fastapi-learn/files/images/instrumenimage", file_image.filename)
                 
                 with open(file_path, "wb") as f:
                     f.write(file_image.file.read())
@@ -442,7 +442,7 @@ async def create_data_instrumen(nama: Annotated[str, Form()], desc: Annotated[st
             file_paths_tridi = []
 
             for file_tridi in files_tridi:
-                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\instrumentridi", file_tridi.filename)
+                file_path = os.path.join(r"/fastapi-learn/files/images/instrumentridi", file_tridi.filename)
                 
                 with open(file_path, "wb") as f:
                     f.write(file_tridi.file.read())
@@ -491,7 +491,7 @@ async def update_data_instrumen(id: str, nama: Annotated[str, Form()] = None, de
                 file_paths_image = []
 
                 for file_image in files_image:
-                    file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\instrumenimage", file_image.filename)
+                    file_path = os.path.join(r"/fastapi-learn/files/images/instrumenimage", file_image.filename)
                     
                     with open(file_path, "wb") as f:
                         f.write(file_image.file.read())
@@ -514,7 +514,7 @@ async def update_data_instrumen(id: str, nama: Annotated[str, Form()] = None, de
                 file_paths_tridi = []
 
                 for file_tridi in files_tridi:
-                    file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\instrumentridi", file_tridi.filename)
+                    file_path = os.path.join(r"/fastapi-learn/files/images/instrumentridi", file_tridi.filename)
                     
                     with open(file_path, "wb") as f:
                         f.write(file_tridi.file.read())
@@ -609,7 +609,7 @@ async def upload_audio_data(id_gamelan: Annotated[str, Form()], nama_audio: Anno
         file_paths = []
 
         for file in files:
-            file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\audiogamelan", file.filename)
+            file_path = os.path.join(r"/fastapi-learn/files/images/audiogamelan", file.filename)
             
             with open(file_path, "wb") as f:
                 f.write(file.file.read())
@@ -645,7 +645,7 @@ async def update_data_audio(id: str, nama_audio: Annotated[str, Form()] = None, 
             file_paths = []
 
             for file in files:
-                file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\audiogamelan", file.filename)
+                file_path = os.path.join(r"/fastapi-learn/files/images/audiogamelan", file.filename)
                 
                 with open(file_path, "wb") as f:
                     f.write(file.file.read())
