@@ -83,13 +83,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # origins = ['http://localhost:3000']
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins = ["*"],
-    allow_credentials = True,
-    allow_methods = ["*"],
-    allow_headers = ["*"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins = ["*"],
+#     allow_credentials = True,
+#     allow_methods = ["*"],
+#     allow_headers = ["*"],
+# )
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
