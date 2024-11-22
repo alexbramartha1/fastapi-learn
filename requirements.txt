@@ -7,3 +7,4 @@ typing
 datetime
 pymongo
 motor
+python-multipart
