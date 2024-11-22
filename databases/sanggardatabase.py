@@ -4,6 +4,8 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from bson import ObjectId
 import os
+import time
+from datetime import datetime
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -18,6 +20,17 @@ async def fetch_all_sanggar():
     cursor = collection.find({})
 
     async for document in cursor:
+        ts = document["createdAt"]
+        
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
         sanggar_data = {
             "_id": str(document["_id"]),
             "image": document["image"],
@@ -30,7 +43,15 @@ async def fetch_all_sanggar():
             "kabupaten": document["kabupaten"],
             "provinsi": document["provinsi"],
             "kode_pos": document["kode_pos"],
-            "id_creator": document["id_creator"]
+            "id_creator": document["id_creator"],
+            "status": document["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu,
+            "deskripsi": document["deskripsi"]
         }
 
         sanggar.append(sanggar_data)
@@ -48,6 +69,17 @@ async def fetch_sanggar_specific(name: str):
     cursor = collection.find({"nama_sanggar": {"$regex": f"(?i){name}"}})
     
     async for document in cursor:
+        ts = document["createdAt"]
+        
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
         sanggar_data = {
             "_id": str(document["_id"]),
             "image": document["image"],
@@ -60,7 +92,15 @@ async def fetch_sanggar_specific(name: str):
             "kabupaten": document["kabupaten"],
             "provinsi": document["provinsi"],
             "kode_pos": document["kode_pos"],
-            "id_creator": document["id_creator"]
+            "id_creator": document["id_creator"],
+            "status": document["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu,
+            "deskripsi": document["deskripsi"]
         }
 
         sanggar.append(sanggar_data)
@@ -73,6 +113,17 @@ async def fetch_sanggar_specific_by_id_creator(id: str):
     cursor = collection.find({"id_creator": id})
     
     async for document in cursor:
+        ts = document["createdAt"]
+        
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
         sanggar_data = {
             "_id": str(document["_id"]),
             "image": document["image"],
@@ -85,7 +136,15 @@ async def fetch_sanggar_specific_by_id_creator(id: str):
             "kabupaten": document["kabupaten"],
             "provinsi": document["provinsi"],
             "kode_pos": document["kode_pos"],
-            "id_creator": document["id_creator"]
+            "id_creator": document["id_creator"],
+            "status": document["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu,
+            "deskripsi": document["deskripsi"]
         }
         
         sanggar.append(sanggar_data)
@@ -101,11 +160,14 @@ async def create_sanggar_data(
     kabupaten: str,
     provinsi: str,
     kode_pos: str,
+    deskripsi: str,
     id_creator: str
     ):
     
     data_sanggar: SanggarData
     
+    timestamps = time.time()
+
     data_sanggar = {
         "image": image,
         "nama_sanggar": nama,
@@ -117,7 +179,11 @@ async def create_sanggar_data(
         "kabupaten": kabupaten,
         "provinsi": provinsi,
         "kode_pos": kode_pos,
-        "id_creator": id_creator
+        "id_creator": id_creator,
+        "status": "unapproved",
+        "createdAt": timestamps,
+        "updatedAt": timestamps,
+        "deskripsi": deskripsi
     }
 
     result = await collection.insert_one(data_sanggar)
@@ -126,6 +192,7 @@ async def create_sanggar_data(
 
 async def update_sanggar_data(
     id: str, 
+    image_path: str,
     nama: str, 
     alamat: str, 
     no_telepon: str,
@@ -135,12 +202,16 @@ async def update_sanggar_data(
     kabupaten: str,
     provinsi: str,
     kode_pos: str,
+    deskripsi: str
     ):
     
     object_id = ObjectId(id)
 
     update_data = {}
     
+    if image_path:
+        update_data["image"] = image_path
+
     if nama:
         update_data["nama_sanggar"] = nama
     
@@ -165,15 +236,21 @@ async def update_sanggar_data(
     if provinsi:
         update_data["provinsi"] = provinsi
     
-    if provinsi:
+    if kode_pos:
         update_data["kode_pos"] = kode_pos
+    
+    if deskripsi:
+        update_data["deskripsi"] = deskripsi
+
+    timestamps = time.time()
+
+    if update_data:
+        update_data["updatedAt"] = timestamps
 
     await collection.update_one(
         {"_id": object_id},
         {"$set": update_data},
     )
-
-    document = await collection.find_one({"_id": object_id})
 
     return {"message": "Data updated successfully", "updated_data": update_data}
 
@@ -199,9 +276,18 @@ async def delete_sanggar_data(id: str):
     await collection.delete_one({"_id": object_id})
 
     return True
-        
-async def update_sanggar_photo(id: str, foto: str):
+
+async def approval_sanggar_data(id: str, status: str):
     object_id = ObjectId(id)
-    await collection.update_one({"_id": object_id}, {"$set":{"image": foto}})
-    document = await collection.find_one({"_id": object_id})
-    return document
+
+    timestamps = time.time()
+    
+    if status == "approved":
+        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
+
+        return f"Data Sanggar Gamelan Bali {status}"
+    
+    if status == "unapproved":
+        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
+
+        return f"Data Sanggar Gamelan Bali {status}"

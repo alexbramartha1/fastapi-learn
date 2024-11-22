@@ -14,4 +14,6 @@ class GamelanData(BaseModel):
     audio_gamelan: List[Audio]
     instrument_id: List[str]
     status: str
+    createdAt: str
+    updatedAt: str
 

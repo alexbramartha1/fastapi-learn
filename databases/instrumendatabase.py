@@ -4,6 +4,8 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from bson import ObjectId
 import os
+import time
+from datetime import datetime
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -18,6 +20,16 @@ async def fetch_byname_instrumen(name: str):
     cursor = collection.find({"nama_instrument": {"$regex": f"(?i){name}"}})
     
     async for document in cursor:
+        ts = document["createdAt"]
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
         instrumen_data = {
             "_id": str(document["_id"]),
             "nama_instrument": document["nama_instrument"],
@@ -26,7 +38,13 @@ async def fetch_byname_instrumen(name: str):
             "fungsi": document["fungsi"],
             "image_instrumen": document["image_instrumen"],
             "status": document["status"],
-            "bahan": document["bahan"]
+            "bahan": document["bahan"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
         }
 
         instrument.append(instrumen_data)
@@ -39,6 +57,16 @@ async def fetch_all_instrumen():
     cursor = collection.find({})
 
     async for document in cursor:
+        ts = document["createdAt"]
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
         instrumen_data = {
             "_id": str(document["_id"]),
             "nama_instrument": document["nama_instrument"],
@@ -47,7 +75,13 @@ async def fetch_all_instrumen():
             "fungsi": document["fungsi"],
             "image_instrumen": document["image_instrumen"],
             "status": document["status"],
-            "bahan": document["bahan"]
+            "bahan": document["bahan"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
         }
 
         instrumen.append(instrumen_data)
@@ -61,6 +95,8 @@ async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, i
         if bahanData:
             print(bahanData)
 
+    timestamps = time.time()
+
     data = {
         "nama_instrument": nama,
         "description": desc,
@@ -68,7 +104,9 @@ async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, i
         "fungsi": fungsi,
         "image_instrumen": image_instrumen,
         "status": "unapproved",
-        "bahan": bahan
+        "bahan": bahan,
+        "createdAt": timestamps,
+        "updatedAt": timestamps
     }
 
     document = await collection.insert_one(data)
@@ -103,6 +141,11 @@ async def update_instrumen_data(id: str, nama: str, desc: str, fungsi: str, trid
     if image_instrumen:
         data_updated["image_instrumen"] = image_instrumen
 
+    timestamps = time.time()
+    
+    if data_updated:
+        data_updated["updatedAt"] = timestamps
+
     await collection.update_one(
         {"_id": objectId},
         {"$set": data_updated},
@@ -111,9 +154,41 @@ async def update_instrumen_data(id: str, nama: str, desc: str, fungsi: str, trid
     return {"message": "Data updated successfully", "Updated_data": data_updated}
 
 async def fetch_one_instrumen(id: str):
-    object_id = ObjectId(id)
+    object_id = ObjectId(id) 
+    instrument = []
+
     document = await collection.find_one({"_id": object_id})
-    return document
+    
+    ts = document["createdAt"]
+    dt = datetime.fromtimestamp(ts)
+    tanggal = dt.date()
+    waktu = dt.time()
+
+    updateTs = document["updatedAt"]
+    updateDt = datetime.fromtimestamp(updateTs)
+    updateTanggal = updateDt.date()
+    updateWaktu = updateDt.time()
+
+    instrumen_data = {
+        "_id": str(document["_id"]),
+        "nama_instrument": document["nama_instrument"],
+        "description": document["description"],
+        "trid_image": document["trid_image"],
+        "fungsi": document["fungsi"],
+        "image_instrumen": document["image_instrumen"],
+        "status": document["status"],
+        "bahan": document["bahan"],
+        "createdAt": dt,
+        "createdDate": tanggal,
+        "createdTime": waktu,
+        "updatedAt": updateDt,
+        "updatedDate": updateTanggal,
+        "updateTime": updateWaktu
+    }
+
+    instrument.append(instrumen_data)
+    
+    return instrument
 
 async def fetch_tridi_instrumen(id: str):
     object_id = ObjectId(id)
@@ -164,12 +239,14 @@ async def delete_instrument_bali(id: str):
 async def approval_instrunmen_data(id: str, status: str):
     object_id = ObjectId(id)
 
+    timestamps = time.time()
+    
     if status == "approved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status}})
+        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
 
         return f"Data Instrumen Gamelan Bali {status}"
     
     if status == "unapproved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status}})
+        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
 
         return f"Data Instrumen Gamelan Bali {status}"

@@ -14,6 +14,10 @@ class SanggarData(BaseModel):
     provinsi: str
     kode_pos: str
     id_creator: str
+    createdAt: str
+    status: str
+    updatedAt: str
+    deskripsi: str
 
     class Config:
         from_attributes = True  # Jika ada integrasi dengan ORM di masa depan

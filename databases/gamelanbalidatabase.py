@@ -8,6 +8,8 @@ from fastapi.encoders import jsonable_encoder
 import json
 from fastapi import FastAPI, HTTPException
 import os
+import time
+from datetime import datetime
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -16,8 +18,75 @@ database = client["tugas-akhir-data"]
 
 collection = database["gamelan-bali"]
 collection_instrumen = database["instrumen-gamelan"]
+collection_audio_gamelan = database["audio-gamelan"]
 
-async def fetch_all_instrument_by_gamelan_array(name: str):
+async def fetch_audio_gamelan_by_gamelan_id(id: List[str]):
+    audio_data = []
+    
+    audio_gamelan = collection_audio_gamelan.find({"id_gamelan": {"$in": id}})
+
+    async for audio_gamelan_data in audio_gamelan:
+        audio_data_gamelan = {
+            "_id": str(audio_gamelan_data["_id"]),
+            "id_gamelan": audio_gamelan_data["id_gamelan"],
+            "audio_name": audio_gamelan_data["audio_name"],
+            "audio_path": audio_gamelan_data["audio_path"]
+        }
+
+        audio_data.append(audio_data_gamelan)
+
+    return audio_data
+
+async def fetch_all_gamelan_by_instrument_id(id: str):
+    
+    gamelan_specific = collection.find({"instrument_id": id})
+
+    gamelan_data_spec = []
+    gamelan_id_list = []
+
+    async for instrument in gamelan_specific:
+        ts = instrument["createdAt"]
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = instrument["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
+        gamelan_data = {
+            "_id": str(instrument["_id"]),
+            "nama_gamelan": instrument["nama_gamelan"],
+            "golongan": instrument["golongan"],
+            "description": instrument["description"],
+            "upacara": instrument["upacara"],
+            "instrument_id": instrument["instrument_id"],
+            "status": instrument["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
+        }
+    
+        gamelan_data_spec.append(gamelan_data)
+
+        gamelan_id_list.append(str(instrument["_id"]))
+
+    audio_data = await fetch_audio_gamelan_by_gamelan_id(gamelan_id_list)
+
+    if gamelan_data_spec:
+
+        return {
+            "gamelan_data": gamelan_data_spec,
+            "audio_data": audio_data
+        }
+    
+    return f"There is no data gamelan with this id {id}"
+
+async def fetch_all_instrument_by_gamelan_name(name: str):
     
     gamelan_specific = collection.find({"nama_gamelan": {"$regex": f"(?i){name}"}})
 
@@ -25,22 +94,41 @@ async def fetch_all_instrument_by_gamelan_array(name: str):
 
     instrument_id = []
 
+    gamelan_id_list = []
+
     async for instrument in gamelan_specific:
+        ts = instrument["createdAt"]
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = instrument["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
         gamelan_data = {
             "_id": str(instrument["_id"]),
             "nama_gamelan": instrument["nama_gamelan"],
             "golongan": instrument["golongan"],
             "description": instrument["description"],
             "upacara": instrument["upacara"],
-            "audio_gamelan": instrument["audio_gamelan"],
             "instrument_id": instrument["instrument_id"],
-            "status": instrument["status"]
+            "status": instrument["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
         }
         
         instrument_data_id = {
             "instrument_id": instrument["instrument_id"]
         }
         
+        gamelan_id_list.append(str(instrument["_id"]))
+
         gamelan_data_spec.append(gamelan_data)
         instrument_id.append(instrument_data_id)
 
@@ -71,13 +159,22 @@ async def fetch_all_instrument_by_gamelan_array(name: str):
 
         data_instrumen.append(instrumen_data)
 
-    if gamelan_data_spec:
+    audio_data = await fetch_audio_gamelan_by_gamelan_id(gamelan_id_list)
+    full_data_with_audio = []
 
+    for gamelan_data_with_audio in gamelan_data_spec:
+        gamelan_data_with_audio['audio_gamelan'] = [
+            audio for audio in audio_data if gamelan_data_with_audio['_id'] == audio['id_gamelan']
+        ] 
+
+        full_data_with_audio.append(gamelan_data_with_audio)
+
+    if gamelan_data_spec:
         return {
-            "gamelan_data": gamelan_data_spec,
-            "instrument_data": data_instrumen
+            "gamelan_data": full_data_with_audio,
+            "instrument_data": data_instrumen,
         }
-    
+
     return f"There is no data gamelan with this name {name}"
 
 async def fetch_all_gamelan():
@@ -85,100 +182,236 @@ async def fetch_all_gamelan():
 
     document = collection.find({})
 
+    gamelan_id_list = []
+
     async for data in document:
-        audio = []
+        ts = data["createdAt"]
+
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = data["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
             "golongan": data["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
-            "audio_gamelan": data["audio_gamelan"],
             "instrument_id": data["instrument_id"],
-            "status": data["status"]
+            "status": data["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
         }
 
         gamelan.append(gamelan_data)
+        gamelan_id_list.append(str(data["_id"]))
 
-        for data_audio in data["audio_gamelan"]:
-            audio_data = {
-                "audio_name": data_audio["audio_name"],
-                "audio_path": data_audio["audio_path"]
-            }
+    audio_data = await fetch_audio_gamelan_by_gamelan_id(gamelan_id_list)
 
-            audio.append(audio_data)
+    full_data_with_audio = []
 
-        print(audio)
+    for gamelan_data_with_audio in gamelan:
+        gamelan_data_with_audio['audio_gamelan'] = [
+            audio for audio in audio_data if gamelan_data_with_audio['_id'] == audio['id_gamelan']
+        ] 
 
-    return gamelan
+        full_data_with_audio.append(gamelan_data_with_audio)
+
+    return {
+        "gamelan_data": full_data_with_audio
+    }
 
 async def fetch_specific_gamelan(id: str):
     object_id = ObjectId(id)
     gamelan = []
     document = collection.find({"_id": object_id})
 
+    gamelan_id_list = []
+
     async for data in document:
+        ts = data["createdAt"]
+        
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = data["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
             "golongan": data["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
-            "audio_gamelan": data["audio_gamelan"],
             "instrument_id": data["instrument_id"],
-            "status": data["status"]
+            "status": data["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
         }
 
         gamelan.append(gamelan_data)
-        gamelan_testing = GamelanData(**gamelan_data)
-        nama_audio = [audio.audio_name for audio in gamelan_testing.audio_gamelan]
-        print(nama_audio) 
+        gamelan_id_list.append(str(data["_id"]))
 
-    return gamelan
+    audio_data = await fetch_audio_gamelan_by_gamelan_id(gamelan_id_list)
+    full_data_with_audio = []
 
+    for gamelan_data_with_audio in gamelan:
+        gamelan_data_with_audio['audio_gamelan'] = [
+            audio for audio in audio_data if gamelan_data_with_audio['_id'] == audio['id_gamelan']
+        ] 
+
+        full_data_with_audio.append(gamelan_data_with_audio)
+
+    return {
+        "gamelan_data": full_data_with_audio
+    }
+
+async def fetch_specific_gamelan_by_golongan(golongan: str):
+    gamelan = []
+    document = collection.find({"golongan": {"$regex": f"(?i){golongan}"}})
+
+    gamelan_id_list = []
+
+    async for data in document:
+        ts = data["createdAt"]
+        
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = data["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
+        gamelan_data = {
+            "_id": str(data["_id"]),
+            "nama_gamelan": data["nama_gamelan"],
+            "golongan": data["golongan"],
+            "description": data["description"],
+            "upacara": data["upacara"],
+            "instrument_id": data["instrument_id"],
+            "status": data["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
+        }
+
+        gamelan.append(gamelan_data)
+        gamelan_id_list.append(str(data["_id"]))
+
+    audio_data = await fetch_audio_gamelan_by_gamelan_id(gamelan_id_list)
+
+    full_data_with_audio = []
+
+    for gamelan_data_with_audio in gamelan:
+        gamelan_data_with_audio['audio_gamelan'] = [
+            audio for audio in audio_data if gamelan_data_with_audio['_id'] == audio['id_gamelan']
+        ] 
+
+        full_data_with_audio.append(gamelan_data_with_audio)
+
+    return {
+        "gamelan_data": full_data_with_audio
+    }
 
 async def fetch_byname_gamelan(nama_gamelan: str):
     gamelan = []
 
     cursor = collection.find({"nama_gamelan": {"$regex": f"(?i){nama_gamelan}"}})
-    
+
+    gamelan_id_list = []
+
     async for data in cursor:
+
+        ts = data["createdAt"]
+        
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = data["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
             "golongan": data["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
-            "audio_gamelan": data["audio_gamelan"],
             "instrument_id": data["instrument_id"],
-            "status": data["status"]
+            "status": data["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
         }
 
-        gamelan.append(gamelan_data)
-    
-    return gamelan
+        gamelan.append(gamelan_data)        
+        gamelan_id_list.append(str(data["_id"]))
 
-async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str, upacara: List[str], audio_gamelan: str, instrument_id: List[str]):
-    try:
-        # Parse and convert audio_gamelan JSON data to a list of Audio objects
-        audio_gamelan_list = [Audio(**item) for item in json.loads(audio_gamelan)]
+    audio_data = await fetch_audio_gamelan_by_gamelan_id(gamelan_id_list)
+
+    full_data_with_audio = []
+
+    for gamelan_data_with_audio in gamelan:
+        gamelan_data_with_audio['audio_gamelan'] = [
+            audio for audio in audio_data if gamelan_data_with_audio['_id'] == audio['id_gamelan']
+        ] 
+
+        full_data_with_audio.append(gamelan_data_with_audio)
+
+    return {
+        "gamelan_data": full_data_with_audio
+    }
+
+async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str, upacara: List[str], instrument_id: List[str]):
+    # try:
+    #     # Parse and convert audio_gamelan JSON data to a list of Audio objects
+    #     audio_gamelan_list = [Audio(**item) for item in json.loads(audio_gamelan)]
         
-        # Convert each Audio object to a dictionary
-        audio_gamelan_dicts = [audio.dict() for audio in audio_gamelan_list]
+    #     # Convert each Audio object to a dictionary
+    #     audio_gamelan_dicts = [audio.dict() for audio in audio_gamelan_list]
 
-    except json.JSONDecodeError:
-        raise HTTPException(400, "Invalid JSON format for audio_gamelan")
+    # except json.JSONDecodeError:
+    #     raise HTTPException(400, "Invalid JSON format for audio_gamelan")
 
-    print(audio_gamelan_dicts)
+    # print(audio_gamelan_dicts)
+
+    timestamps = time.time()
 
     gamelan_data = {
         "nama_gamelan": nama_gamelan,
         "golongan": golongan,
         "description": description,
         "upacara": upacara,
-        "audio_gamelan": audio_gamelan_dicts,
         "instrument_id": instrument_id,
-        "status": "unapproved"
+        "status": "unapproved",
+        "createdAt": timestamps,
+        "updatedAt": timestamps
     }
     
     response = await collection.insert_one(gamelan_data)
@@ -188,37 +421,39 @@ async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str
 async def approval_gamelan_data(id: str, status: str):
     object_id = ObjectId(id)
 
+    timestamps = time.time()
+    
     if status == "approved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status}})
+        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
 
         return f"Data Gamelan Bali {status}"
     
     if status == "unapproved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status}})
+        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
 
         return f"Data Gamelan Bali {status}"
 
-async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, description: str, audio_gamelan: str, instrument_id: List[str], upacara: List[str]):
+async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, description: str, instrument_id: List[str], upacara: List[str]):
     object_id = ObjectId(id)
     updated_data = {}
 
-    if not audio_gamelan:
-        audio_gamelan == None
+    # if not audio_gamelan:
+    #     audio_gamelan == None
 
-    if audio_gamelan:
-        try:
-            # Parse and convert audio_gamelan JSON data to a list of Audio objects
-            audio_gamelan_list = [Audio(**item) for item in json.loads(audio_gamelan)]
+    # if audio_gamelan:
+    #     try:
+    #         # Parse and convert audio_gamelan JSON data to a list of Audio objects
+    #         audio_gamelan_list = [Audio(**item) for item in json.loads(audio_gamelan)]
             
-            audio_gamelan_list = [data for data in audio_gamelan_list if  (data.audio_name and data.audio_path) and (data.audio_name != "string" and data.audio_path != "string")]
+    #         audio_gamelan_list = [data for data in audio_gamelan_list if  (data.audio_name and data.audio_path) and (data.audio_name != "string" and data.audio_path != "string")]
 
-            # Convert each Audio object to a dictionary
-            audio_gamelan_dicts = [audio.dict() for audio in audio_gamelan_list]
+    #         # Convert each Audio object to a dictionary
+    #         audio_gamelan_dicts = [audio.dict() for audio in audio_gamelan_list]
 
-        except json.JSONDecodeError:
-            raise HTTPException(400, "Invalid JSON format for audio_gamelan")
+    #     except json.JSONDecodeError:
+    #         raise HTTPException(400, "Invalid JSON format for audio_gamelan")
 
-        print(audio_gamelan_dicts)
+    #     print(audio_gamelan_dicts)
     
     if instrument_id:
         instrument_id = [data for data in instrument_id if data and data != "string"]
@@ -232,7 +467,7 @@ async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, descrip
     if not upacara:
         upacara = None
 
-    print(audio_gamelan)
+    # print(audio_gamelan)
     print(instrument_id)
     print(upacara)
 
@@ -248,13 +483,18 @@ async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, descrip
     if upacara:
         updated_data["upacara"] = upacara
     
-    if audio_gamelan:
-        updated_data["audio_gamelan"] = audio_gamelan_dicts
+    # if audio_gamelan:
+    #     updated_data["audio_gamelan"] = audio_gamelan_dicts
     
     if instrument_id:
         updated_data["instrument_id"] = instrument_id
 
     print(updated_data)
+
+    timestamps = time.time()
+    
+    if updated_data:
+        updated_data["updatedAt"] = timestamps
 
     await collection.update_one(
         {"_id": object_id}, 
