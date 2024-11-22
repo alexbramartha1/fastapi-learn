@@ -3,7 +3,6 @@ uvicorn
 python-jose
 passlib
 pyjwt
-bson
 typing
 datetime
 pymongo
