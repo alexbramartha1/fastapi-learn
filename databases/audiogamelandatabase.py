@@ -48,7 +48,9 @@ async def fetch_audio_by_gamelan_id(id: str):
 
         audio_array.append(audio_data_input)
 
-    return audio_array
+    return {
+        "audio_array": audio_array
+    }
 
 async def fetch_all_audio():
 
@@ -66,7 +68,10 @@ async def fetch_all_audio():
 
         audio_array.append(audio_data_input)
 
-    return audio_array
+    return {
+        "audio_array": audio_array
+    }
+
 
 async def fetch_audio_path(id: str):
     object_id = ObjectId(id)

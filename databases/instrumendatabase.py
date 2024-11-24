@@ -52,7 +52,9 @@ async def fetch_byname_instrumen(name: str):
 
         instrument.append(instrumen_data)
     
-    return instrument
+    return {
+        "instrument_data": instrument
+    }
                                                   
 async def fetch_all_instrumen():
     instrumen = []
@@ -89,7 +91,9 @@ async def fetch_all_instrumen():
 
         instrumen.append(instrumen_data)
     
-    return instrumen
+    return {
+        "instrument_data": instrumen
+    }
 
 async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, image_instrumen: str, bahan: List[str]):
     data: InstrumenData
@@ -191,7 +195,9 @@ async def fetch_one_instrumen(id: str):
 
     instrument.append(instrumen_data)
     
-    return instrument
+    return {
+        "instrument_data": instrument
+    }
 
 async def fetch_tridi_instrumen(id: str):
     object_id = ObjectId(id)

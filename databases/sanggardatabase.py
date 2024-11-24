@@ -59,7 +59,10 @@ async def fetch_all_sanggar():
 
         sanggar.append(sanggar_data)
     
-    return sanggar
+    return {
+        "sanggar_data": sanggar
+    }
+
 
 async def fetch_one_sanggar(id: str):
     object_id = ObjectId(id)
