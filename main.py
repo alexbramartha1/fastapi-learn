@@ -14,6 +14,17 @@ from jwt.exceptions import InvalidTokenError, ExpiredSignatureError, PyJWTError
 from typing import Annotated
 import json
 import uvicorn
+import cloudinary
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
+
+# Configuration       
+cloudinary.config( 
+    cloud_name = "dvbbtszph", 
+    api_key = "694649632346865", 
+    api_secret = "WR5DNfKt3IXFvpRIX_SqLgW_ksw",
+    secure=True
+)
 
 from databases.masyarakatdatabase import (
     fetch_one_user, 
@@ -248,32 +259,43 @@ async def update_data_user(id: str, email: Annotated[str, Form()] = None, nama: 
 @app.post("/api/files/uploadphotoprofile/{id}")
 async def upload_photo_profile_pengguna(id: str, files: list[UploadFile], current_user: UserInDB = Depends(get_current_user)):
     if current_user:
-        if os.path.exists(current_user.foto_profile):
-            os.remove(current_user.foto_profile)
-            print(f"The file {current_user.foto_profile} has been deleted.")
-        else:
-            print(f"The file {current_user.foto_profile} does not exist.")
+        # if os.path.exists(current_user.foto_profile):
+        #     os.remove(current_user.foto_profile)
+        #     print(f"The file {current_user.foto_profile} has been deleted.")
+        # else:
+        #     print(f"The file {current_user.foto_profile} does not exist.")
 
-        try: 
-            saved_files = []
-            file_paths = []
+
+        try:
+            if current_user.foto_profile:
+                url_link = current_user.foto_profile
+
+                public_id = extract_public_id(url_link)
+
+                response = cloudinary.uploader.destroy(public_id)
+
+            uploaded_files = []
 
             for file in files:
-                file_path = os.path.join(r"/fastapi-learn/files/images", file.filename)
-                
-                with open(file_path, "wb") as f:
-                    f.write(file.file.read())
-                
-                saved_files.append(file.filename)
-                file_paths.append(str(file_path))
 
-            image_path = file_paths[0]
-            await update_photo_user(id, image_path)
+                file_content = await file.read()
+                response = cloudinary.uploader.upload(file_content)
+                uploaded_files.append(response["secure_url"])
 
-            return {"message": "Files saved successfully", "files": saved_files}
-            
+                await update_photo_user(id, response["secure_url"])
+
+            return {"message": "Files saved successfully", "files": uploaded_files}
+
         except Exception as e:
             return {"message": f"Error occurred: {str(e)}"}
+
+def extract_public_id(secure_url):
+    pattern = r"/upload/(?:v\d+/)?(.+)\.\w+$"
+    match = re.search(pattern, secure_url)
+    if match:
+        return match.group(1)
+    else:
+        return None
 
 @app.put("/api/userdata/{id}", response_model=UserData)
 async def update_photo_user(id: str, foto: str):
@@ -299,19 +321,15 @@ async def create_sanggar(files: list[UploadFile], nama_sanggar: Annotated[str, F
         
         try: 
             saved_files = []
-            file_paths = []
 
             for file in files:
-                file_path = os.path.join(r"/fastapi-learn/files/images/sanggarimage", file.filename)
-                
-                with open(file_path, "wb") as f:
-                    f.write(file.file.read())
-                
-                saved_files.append(file.filename)
-                file_paths.append(str(file_path))
+                file_content = await file.read()
+                response = cloudinary.uploader.upload(file_content)
+                saved_files.append(response["secure_url"])
 
-            image_path = file_paths[0]
-            response = await create_sanggar_data(image_path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi, id_creator)
+            path = saved_files[0]
+            
+            response = await create_sanggar_data(path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi, id_creator)
 
             return {"message": "Data saved successfully", "response": response}
             
@@ -340,31 +358,26 @@ async def update_data_sanggar(id: str, files: list[UploadFile] = None, nama_sang
         
         if files[0].filename:
             image = await get_sanggar_by_id(id)
-            if os.path.exists(image):
-                os.remove(image)
-                print(f"The file {image} has been deleted.")
-            else:
-                print(f"The file {image} does not exist.")
+
+            if image:
+                public_id = extract_public_id(image)
+
+                response = cloudinary.uploader.destroy(public_id)
 
             try: 
                 saved_files = []
-                file_paths = []
 
                 for file in files:
-                    file_path = os.path.join(r"/fastapi-learn/files/images/sanggarimage", file.filename)
-                    
-                    with open(file_path, "wb") as f:
-                        f.write(file.file.read())
-                    
-                    saved_files.append(file.filename)
-                    file_paths.append(str(file_path))
+                    file_content = await file.read()
+                    response = cloudinary.uploader.upload(file_content)
+                    saved_files.append(response["secure_url"])
 
-                image_path = file_paths[0]
+                path = saved_files[0]
 
             except Exception as e:
                 return {"message": f"Error occurred: {str(e)}"}
         
-        response = await update_sanggar_data(id, image_path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi)
+        response = await update_sanggar_data(id, path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi)
         if response:
             return response
         raise HTTPException(404, f"There is no user with this name {id}")
@@ -424,33 +437,24 @@ async def fetch_all_data_instrumen(current_user: UserInDB = Depends(get_current_
 async def create_data_instrumen(nama: Annotated[str, Form()], desc: Annotated[str, Form()], fungsi: Annotated[str, Form()], files_image: list[UploadFile], files_tridi: list[UploadFile], bahan: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         try: 
+
             saved_files_image = []
-            file_paths_image = []
 
-            for file_image in files_image:
-                file_path = os.path.join(r"/fastapi-learn/files/images/instrumenimage", file_image.filename)
-                
-                with open(file_path, "wb") as f:
-                    f.write(file_image.file.read())
-                
-                saved_files_image.append(file_image.filename)
-                file_paths_image.append(str(file_path))
+            for file in files_image:
+                file_content = await file.read()
+                response = cloudinary.uploader.upload(file_content)
+                saved_files_image.append(response["secure_url"])
 
-            image_path = file_paths_image[0]
+            image_path = saved_files_image[0]
 
             saved_files_tridi = []
-            file_paths_tridi = []
 
-            for file_tridi in files_tridi:
-                file_path = os.path.join(r"/fastapi-learn/files/images/instrumentridi", file_tridi.filename)
-                
-                with open(file_path, "wb") as f:
-                    f.write(file_tridi.file.read())
-                
-                saved_files_tridi.append(file_tridi.filename)
-                file_paths_tridi.append(str(file_path))
+            for file in files_tridi:
+                file_content = await file.read()
+                response = cloudinary.uploader.upload(file_content)
+                saved_files_tridi.append(response["secure_url"])
 
-            tridi_path = file_paths_tridi[0]
+            tridi_path = saved_files_tridi[0]
 
             response = await create_instrumen_data(nama, desc, tridi_path, fungsi, image_path, bahan)
 
@@ -470,6 +474,20 @@ async def update_data_approval_instrumen_data(id: str, status: Annotated[str, Fo
             return response
         raise HTTPException(404, f"There is no instrument data with id {id}")
 
+# saved_files_tridi = []
+# file_paths_tridi = []
+
+# for file_tridi in files_tridi:
+#     file_path = os.path.join(r"/fastapi-learn/files/images/instrumentridi", file_tridi.filename)
+    
+#     with open(file_path, "wb") as f:
+#         f.write(file_tridi.file.read())
+    
+#     saved_files_tridi.append(file_tridi.filename)
+#     file_paths_tridi.append(str(file_path))
+
+# tridi_path = file_paths_tridi[0]
+
 @app.put("/api/instrumendata/update/{id}")
 async def update_data_instrumen(id: str, nama: Annotated[str, Form()] = None, desc: Annotated[str, Form()] = None, fungsi: Annotated[str, Form()] = None, files_image: list[UploadFile] = None, files_tridi: list[UploadFile] = None, bahan: Annotated[List[str], Form()] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
@@ -481,48 +499,36 @@ async def update_data_instrumen(id: str, nama: Annotated[str, Form()] = None, de
             if files_image[0].filename:
                 image_past = await get_instrumen_image_by_id(id)
 
-                if os.path.exists(image_past):
-                    os.remove(image_past)
-                    print(f"The file {image_past} has been deleted.")
-                else:
-                    print(f"The file {image_past} does not exist.")
+                if image_past:
+                    public_id = extract_public_id(image_past)
+
+                    response = cloudinary.uploader.destroy(public_id)
 
                 saved_files_image = []
-                file_paths_image = []
 
-                for file_image in files_image:
-                    file_path = os.path.join(r"/fastapi-learn/files/images/instrumenimage", file_image.filename)
-                    
-                    with open(file_path, "wb") as f:
-                        f.write(file_image.file.read())
-                    
-                    saved_files_image.append(file_image.filename)
-                    file_paths_image.append(str(file_path))
+                for file in files_image:
+                    file_content = await file.read()
+                    response = cloudinary.uploader.upload(file_content)
+                    saved_files_image.append(response["secure_url"])
 
-                image_path = file_paths_image[0]
+                image_path = saved_files_image[0]
 
             if files_tridi[0].filename:
                 tridi_past = await get_instrumen_tridi_by_id(id)
 
-                if os.path.exists(tridi_past):
-                    os.remove(tridi_past)
-                    print(f"The file {tridi_past} has been deleted.")
-                else:
-                    print(f"The file {tridi_past} does not exist.")
+                if tridi_past:
+                    public_id = extract_public_id(tridi_past)
+
+                    response = cloudinary.uploader.destroy(public_id)
 
                 saved_files_tridi = []
-                file_paths_tridi = []
 
-                for file_tridi in files_tridi:
-                    file_path = os.path.join(r"/fastapi-learn/files/images/instrumentridi", file_tridi.filename)
-                    
-                    with open(file_path, "wb") as f:
-                        f.write(file_tridi.file.read())
-                    
-                    saved_files_tridi.append(file_tridi.filename)
-                    file_paths_tridi.append(str(file_path))
+                for file in files_tridi:
+                    file_content = await file.read()
+                    response = cloudinary.uploader.upload(file_content)
+                    saved_files_tridi.append(response["secure_url"])
 
-                tridi_path = file_paths_tridi[0]
+                tridi_path = saved_files_tridi[0]
 
             if not image_path:
                 image_path = None
@@ -605,19 +611,14 @@ async def create_gamelan_bali(nama_gamelan: Annotated[str, Form()], golongan: An
 @app.post("/api/gamelandata/uploadaudio")
 async def upload_audio_data(id_gamelan: Annotated[str, Form()], nama_audio: Annotated[str, Form()], files: list[UploadFile]):
     try: 
-        saved_files = []
-        file_paths = []
+        saved_files_audio = []
 
         for file in files:
-            file_path = os.path.join(r"/fastapi-learn/files/images/audiogamelan", file.filename)
-            
-            with open(file_path, "wb") as f:
-                f.write(file.file.read())
-            
-            saved_files.append(file.filename)
-            file_paths.append(str(file_path))
+            file_content = await file.read()
+            response = cloudinary.uploader.upload(file_content)
+            saved_files_audio.append(response["secure_url"])
 
-        audio_path = file_paths[0]
+        audio_path = saved_files_audio[0]
 
         response = await create_audio_data(nama_audio, audio_path, id_gamelan)
         
@@ -635,25 +636,19 @@ async def update_data_audio(id: str, nama_audio: Annotated[str, Form()] = None, 
         if files[0].filename:
             audioPast = await get_audio_path_by_id(id)
 
-            if os.path.exists(audioPast):
-                os.remove(audioPast)
-                print(f"The file {audioPast} has been deleted.")
-            else:
-                print(f"The file {audioPast} does not exist.")
+            if audioPast:
+                public_id = extract_public_id(audioPast)
 
-            saved_files = []
-            file_paths = []
+                response = cloudinary.uploader.destroy(public_id)
+
+            saved_files_audio = []
 
             for file in files:
-                file_path = os.path.join(r"/fastapi-learn/files/images/audiogamelan", file.filename)
-                
-                with open(file_path, "wb") as f:
-                    f.write(file.file.read())
-                
-                saved_files.append(file.filename)
-                file_paths.append(str(file_path))
+                file_content = await file.read()
+                response = cloudinary.uploader.upload(file_content)
+                saved_files_audio.append(response["secure_url"])
 
-            audio_path = file_paths[0]
+            audio_path = saved_files_audio[0]
 
         response = await update_audio_data(id, nama_audio, audio_path)
         

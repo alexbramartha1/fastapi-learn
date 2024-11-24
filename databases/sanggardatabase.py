@@ -3,9 +3,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from bson import ObjectId
-import os
+import re
 import time
 from datetime import datetime
+import cloudinary
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -267,15 +270,21 @@ async def delete_sanggar_data(id: str):
         sanggar_image.append(sanggar_image_data)
 
     for path_todelete_sanggar in sanggar_image:
-        if os.path.exists(path_todelete_sanggar):
-            os.remove(path_todelete_sanggar)
-            print(f"The file {path_todelete_sanggar} has been deleted.")
-        else:
-            print(f"The file {path_todelete_sanggar} does not exist.")
+        public_id = extract_public_id(path_todelete_sanggar)
+
+        cloudinary.uploader.destroy(public_id)
 
     await collection.delete_one({"_id": object_id})
 
     return True
+
+def extract_public_id(secure_url):
+    pattern = r"/upload/(?:v\d+/)?(.+)\.\w+$"
+    match = re.search(pattern, secure_url)
+    if match:
+        return match.group(1)
+    else:
+        return None
 
 async def approval_sanggar_data(id: str, status: str):
     object_id = ObjectId(id)

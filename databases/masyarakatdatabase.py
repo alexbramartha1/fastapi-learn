@@ -3,7 +3,10 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from bson import ObjectId
-import os
+import re
+import cloudinary
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -143,16 +146,21 @@ async def delete_user_data(id: str):
         foto_profile.append(foto_profile_data)
 
     for path_todelete_foto in foto_profile:
-        if os.path.exists(path_todelete_foto):
-            os.remove(path_todelete_foto)
-            print(f"The file {path_todelete_foto} has been deleted.")
-        else:
-            print(f"The file {path_todelete_foto} does not exist.")
+        public_id = extract_public_id(path_todelete_foto)
+
+        cloudinary.uploader.destroy(public_id)
     
     await collection.delete_one({"_id": object_id})
 
     return True
 
+def extract_public_id(secure_url):
+    pattern = r"/upload/(?:v\d+/)?(.+)\.\w+$"
+    match = re.search(pattern, secure_url)
+    if match:
+        return match.group(1)
+    else:
+        return None
 # async def delete_user_data(name):
 #     await collection.delete_one({"nama": {"$regex": f"(?i){name}"}})
 #     return True

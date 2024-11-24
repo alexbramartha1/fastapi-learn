@@ -8,3 +8,4 @@ datetime
 pymongo
 motor
 python-multipart
+cloudinary
