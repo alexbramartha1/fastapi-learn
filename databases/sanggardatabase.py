@@ -70,6 +70,50 @@ async def fetch_one_sanggar(id: str):
     image_path = document.get("image")
     return image_path
 
+async def fetch_sanggar_specific_by_id(id: str):
+    object_id = ObjectId(id)
+    sanggar = []
+    cursor = collection.find({"_id": object_id})
+    
+    async for document in cursor:
+        ts = document["createdAt"]
+        
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
+        sanggar_data = {
+            "_id": str(document["_id"]),
+            "image": document["image"],
+            "nama_sanggar": document["nama_sanggar"],
+            "alamat_lengkap": document["alamat_lengkap"],
+            "no_telepon": document["no_telepon"],
+            "nama_jalan": document["nama_jalan"],
+            "desa": document["desa"],
+            "kecamatan": document["kecamatan"],
+            "kabupaten": document["kabupaten"],
+            "provinsi": document["provinsi"],
+            "kode_pos": document["kode_pos"],
+            "id_creator": document["id_creator"],
+            "status": document["status"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu,
+            "deskripsi": document["deskripsi"]
+        }
+
+        sanggar.append(sanggar_data)
+    
+    return {"sanggar_data": sanggar}
+
 async def fetch_sanggar_specific(name: str):
     sanggar = []
     cursor = collection.find({"nama_sanggar": {"$regex": f"(?i){name}"}})

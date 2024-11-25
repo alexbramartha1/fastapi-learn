@@ -55,7 +55,7 @@ async def fetch_byname_instrumen(name: str):
     return {
         "instrument_data": instrument
     }
-                                                  
+
 async def fetch_all_instrumen():
     instrumen = []
 

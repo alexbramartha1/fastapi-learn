@@ -47,6 +47,7 @@ from databases.sanggardatabase import (
     fetch_sanggar_specific,
     fetch_sanggar_specific_by_id_creator,
     approval_sanggar_data,
+    fetch_sanggar_specific_by_id,
 )
 
 from databases.instrumendatabase import (
@@ -406,6 +407,14 @@ async def get_specific_by_name_sanggar(name: str, current_user: UserInDB = Depen
         if response:
             return response
         raise HTTPException(404, f"There is no sanggar data with name {name}")
+
+@app.get("/api/sanggardata/getbyname/{id}")
+async def fetch_sanggar_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_sanggar_specific_by_id(id)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no sanggar data with name {id}")
 
 @app.get("/api/sanggardata/getbyidcreator/{id}")
 async def get_specific_sanggar_by_id_creator(id: str, current_user: UserInDB = Depends(get_current_user)):
