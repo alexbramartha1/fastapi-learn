@@ -408,7 +408,7 @@ async def get_specific_by_name_sanggar(name: str, current_user: UserInDB = Depen
             return response
         raise HTTPException(404, f"There is no sanggar data with name {name}")
 
-@app.get("/api/sanggardata/getbyname/{id}")
+@app.get("/api/sanggardata/getbyid/{id}")
 async def fetch_sanggar_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         response = await fetch_sanggar_specific_by_id(id)
