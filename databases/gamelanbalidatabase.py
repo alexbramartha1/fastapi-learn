@@ -273,9 +273,13 @@ async def fetch_specific_gamelan(id: str):
             "updateTime": updateWaktu
         }
         
+        instrument_data_id = {
+            "instrument_id": instrument["instrument_id"]
+        }
+        
         gamelan.append(gamelan_data)
         gamelan_id_list.append(str(data["_id"]))
-        instrument_id_list.append(data["instrument_id"])
+        instrument_id_list.append(instrument_data_id)
 
     instrument_id_object = []
 
