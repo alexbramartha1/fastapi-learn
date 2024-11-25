@@ -274,7 +274,7 @@ async def fetch_specific_gamelan(id: str):
         }
         
         instrument_data_id = {
-            "instrument_id": instrument["instrument_id"]
+            "instrument_id": data["instrument_id"]
         }
         
         gamelan.append(gamelan_data)
