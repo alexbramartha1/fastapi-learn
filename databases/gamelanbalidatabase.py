@@ -280,8 +280,9 @@ async def fetch_specific_gamelan(id: str):
     instrument_id_object = []
 
     for instrument_id_string in instrument_id_list:
-        object_id_instrument = ObjectId(instrument_id_string)
-        instrument_id_object.append(object_id_instrument)
+        for item in instrument_id_string["instrument_id"]:
+            object_id_instrument = ObjectId(item)
+            instrument_id_object.append(object_id_instrument)
 
     instrument_collection = collection_instrumen.find({"_id": {"$in": instrument_id_object}})
 
