@@ -154,7 +154,8 @@ async def fetch_all_instrument_by_gamelan_name(name: str):
             "description": dataInstrument["description"],
             "trid_image": dataInstrument["trid_image"],
             "fungsi": dataInstrument["fungsi"],
-            "image_instrumen": dataInstrument["image_instrumen"]
+            "image_instrumen": dataInstrument["image_instrumen"],
+            "bahan": dataInstrument["bahan"]
         }
 
         data_instrumen.append(instrumen_data)
@@ -175,7 +176,10 @@ async def fetch_all_instrument_by_gamelan_name(name: str):
             "instrument_data": data_instrumen,
         }
 
-    return f"There is no data gamelan with this name {name}"
+    return {
+            "gamelan_data": f"There is no data gamelan with this name {name}",
+            "instrument_data": f"There is no data instrument with this name {name}",
+        }
 
 async def fetch_all_gamelan():
     gamelan = []

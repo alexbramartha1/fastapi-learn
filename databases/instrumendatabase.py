@@ -124,14 +124,11 @@ async def update_instrumen_data(id: str, nama: str, desc: str, fungsi: str, trid
     objectId = ObjectId(id)
     
     data_updated = {}
-    
-    if bahan:
-        bahan = [data for data in bahan if data and data != "string"]
 
+    bahan = [data for data in bahan if data and data != "string"]
+
+    if bahan:
         data_updated["bahan"] = bahan
-    
-    if not bahan:
-        bahan = None
 
     if nama:
         data_updated["nama_instrument"] = nama
