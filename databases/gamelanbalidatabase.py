@@ -237,9 +237,13 @@ async def fetch_all_gamelan():
 async def fetch_specific_gamelan(id: str):
     object_id = ObjectId(id)
     gamelan = []
+    instrument = []
+
     document = collection.find({"_id": object_id})
 
     gamelan_id_list = []
+    instrument_id_list = []
+
 
     async for data in document:
         ts = data["createdAt"]
@@ -268,9 +272,31 @@ async def fetch_specific_gamelan(id: str):
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu
         }
-
+        
         gamelan.append(gamelan_data)
         gamelan_id_list.append(str(data["_id"]))
+        instrument_id_list.append(data["instrument_id"])
+
+    instrument_id_object = []
+
+    for instrument_id_string in instrument_id_list:
+        object_id_instrument = ObjectId(instrument_id_string)
+        instrument_id_object.append(object_id_instrument)
+
+    instrument_collection = collection_instrumen.find({"_id": {"$in": instrument_id_object}})
+
+    async for dataInstrument in instrument_collection:
+        instrumen_data = {
+            "_id": str(dataInstrument["_id"]),
+            "nama_instrument": dataInstrument["nama_instrument"],
+            "description": dataInstrument["description"],
+            "trid_image": dataInstrument["trid_image"],
+            "fungsi": dataInstrument["fungsi"],
+            "image_instrumen": dataInstrument["image_instrumen"],
+            "bahan": dataInstrument["bahan"]
+        }
+
+        instrument.append(instrumen_data)
 
     audio_data = await fetch_audio_gamelan_by_gamelan_id(gamelan_id_list)
     full_data_with_audio = []
@@ -283,7 +309,8 @@ async def fetch_specific_gamelan(id: str):
         full_data_with_audio.append(gamelan_data_with_audio)
 
     return {
-        "gamelan_data": full_data_with_audio
+        "gamelan_data": full_data_with_audio,
+        "instrument_data": instrument,
     }
 
 async def fetch_specific_gamelan_by_golongan(golongan: str):
