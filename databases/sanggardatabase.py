@@ -155,7 +155,7 @@ async def fetch_sanggar_specific(name: str):
 
         sanggar.append(sanggar_data)
     
-    return sanggar
+    return {"sanggar_data": sanggar}
 
 
 async def fetch_sanggar_specific_by_id_creator(id: str):
@@ -198,6 +198,8 @@ async def fetch_sanggar_specific_by_id_creator(id: str):
         }
         
         sanggar.append(sanggar_data)
+    
+    return {"sanggar_data": sanggar}
     
 async def create_sanggar_data(
     image: str, 
