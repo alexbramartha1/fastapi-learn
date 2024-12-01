@@ -356,7 +356,7 @@ async def get_all_sanggar(current_user: UserInDB = Depends(get_current_user)):
 async def update_data_sanggar(id: str, files: list[UploadFile] = None, nama_sanggar: Annotated[str, Form()] = None, alamat: Annotated[str, Form()] = None, no_telepon: Annotated[str, Form()] = None, nama_jalan: Annotated[str, Form()] = None, desa: Annotated[str, Form()] = None, kecamatan: Annotated[str, Form()] = None, kabupaten: Annotated[str, Form()] = None, provinsi: Annotated[str, Form()] = None, kode_pos: Annotated[str, Form()] = None, deskripsi: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         path = ""
-        if files[0].filename:
+        if files and files[0].filename:
             image = await get_sanggar_by_id(id)
 
             if image:
