@@ -244,17 +244,17 @@ async def create_sanggar_data(
 
 async def update_sanggar_data(
     id: str, 
-    image_path: str,
-    nama: str, 
-    alamat: str, 
-    no_telepon: str,
-    nama_jalan: str, 
-    desa: str, 
-    kecamatan: str,
-    kabupaten: str,
-    provinsi: str,
-    kode_pos: str,
-    deskripsi: str
+    image_path: str = None,
+    nama: str= None, 
+    alamat: str= None, 
+    no_telepon: str= None,
+    nama_jalan: str= None, 
+    desa: str= None, 
+    kecamatan: str= None,
+    kabupaten: str= None,
+    provinsi: str= None,
+    kode_pos: str= None,
+    deskripsi: str= None
     ):
     
     object_id = ObjectId(id)

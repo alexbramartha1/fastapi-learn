@@ -355,8 +355,7 @@ async def get_all_sanggar(current_user: UserInDB = Depends(get_current_user)):
 @app.put("/api/sanggardata/update/{id}")
 async def update_data_sanggar(id: str, files: list[UploadFile] = None, nama_sanggar: Annotated[str, Form()] = None, alamat: Annotated[str, Form()] = None, no_telepon: Annotated[str, Form()] = None, nama_jalan: Annotated[str, Form()] = None, desa: Annotated[str, Form()] = None, kecamatan: Annotated[str, Form()] = None, kabupaten: Annotated[str, Form()] = None, provinsi: Annotated[str, Form()] = None, kode_pos: Annotated[str, Form()] = None, deskripsi: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
-        image_path = None
-        
+        path = ""
         if files[0].filename:
             image = await get_sanggar_by_id(id)
 
@@ -377,11 +376,12 @@ async def update_data_sanggar(id: str, files: list[UploadFile] = None, nama_sang
 
             except Exception as e:
                 return {"message": f"Error occurred: {str(e)}"}
-        
-        response = await update_sanggar_data(id, path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi)
-        if response:
-            return response
+            
+        responseUpdate = await update_sanggar_data(id, path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi)
+        if responseUpdate:
+            return responseUpdate
         raise HTTPException(404, f"There is no user with this name {id}")
+
 
 @app.put("/api/sanggardata/approval/{id}")
 async def update_data_approval_sanggar_data(id: str, status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
