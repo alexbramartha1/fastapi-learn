@@ -21,12 +21,13 @@ database = client["tugas-akhir-data"]
 
 collection_audio_gamelan = database["audio-gamelan"]
 
-async def create_audio_data(audio_name: str, audio_path: str, id_gamelan: str):
+async def create_audio_data(audio_name: str, audio_path: str, id_gamelan: str, deskripsi: str):
 
     audio_data = {
         "id_gamelan": id_gamelan,
         "audio_name": audio_name,
-        "audio_path": audio_path
+        "audio_path": audio_path,
+        "deskripsi": deskripsi
     }
     
     response = await collection_audio_gamelan.insert_one(audio_data)
@@ -43,7 +44,8 @@ async def fetch_audio_by_gamelan_id(id: str):
         audio_data_input = {
             "_id": str(audio_data["_id"]),
             "audio_name": audio_data["audio_name"],
-            "audio_path": audio_data["audio_path"]
+            "audio_path": audio_data["audio_path"],
+            "deskripsi": audio_data["deskripsi"]
         }
 
         audio_array.append(audio_data_input)
@@ -63,7 +65,8 @@ async def fetch_all_audio():
             "_id": str(audio_data["_id"]),
             "audio_name": audio_data["audio_name"],
             "audio_path": audio_data["audio_path"],
-            "id_gamelan": audio_data["id_gamelan"]
+            "id_gamelan": audio_data["id_gamelan"],
+            "deskripsi": audio_data["deskripsi"]
         }
 
         audio_array.append(audio_data_input)
@@ -111,7 +114,7 @@ def extract_public_id(secure_url):
     else:
         return None
 
-async def update_audio_data(id: str, audio_name: str, audio_path: str):
+async def update_audio_data(id: str, audio_name: str, audio_path: str, deskripsi: str):
     object_id = ObjectId(id)
     updated_data = {}
     
@@ -120,6 +123,9 @@ async def update_audio_data(id: str, audio_name: str, audio_path: str):
 
     if audio_path:
         updated_data["audio_path"] = audio_path
+
+    if deskripsi:
+        updated_data["deskripsi"] = deskripsi
 
     await collection_audio_gamelan.update_one(
         {"_id": object_id}, 

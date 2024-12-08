@@ -6,3 +6,4 @@ class AudioGamelanData(BaseModel):
     audio_name: str
     audio_path: str
     id_gamelan: str
+    deskripsi: str

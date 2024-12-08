@@ -84,6 +84,15 @@ from databases.gamelanbalidatabase import (
     fetch_specific_gamelan_by_golongan,
 )
 
+from databases.alamatdatabase import (
+    fetch_desa_data,
+    fetch_desa_data_by_kecamatan_id,
+    fetch_kecamatan_data,
+    fetch_kecamatan_data_by_kabupaten_id,
+    fetch_kabupaten_data,
+    fetch_kabupaten_data_by_provinsi_id
+)
+
 SECRET_KEY = "letsmekillyou"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 10000
@@ -189,12 +198,31 @@ async def login_for_access_token(
             "nama": str(user.nama),
             "sub": str(user.email),
             "foto_profile": str(user.foto_profile),
-            "test": str(user.test)
+            "test": str(user.test),
+            "status": str(user.status),
+            "createdAtDate": str(user.createdAtDate),
+            "createdAtTime": str(user.createdAtTime),
+            "updatedAtTime": str(user.updatedAtTime),
+            "updatedAtDate": str(user.updatedAtDate),
+            "role": str(user.role)
             }, 
         expires_delta=access_token_expires
     )
     
-    return Token(access_token=access_token, user_id=user.test, nama=user.nama, foto_profile=user.foto_profile, email=user.email, token_type="bearer")
+    return Token(
+        access_token=access_token, 
+        user_id=user.test, 
+        nama=user.nama,
+        foto_profile=user.foto_profile,
+        email=user.email,
+        createdAtTime=user.createdAtTime,
+        createdAtDate=user.createdAtDate,
+        updatedAtDate=user.updatedAtDate,
+        updatedAtTime=user.updatedAtTime,
+        role=user.role,
+        status=user.status,
+        token_type="bearer"
+    )
 
 @app.get("/")
 async def read_root():
@@ -227,7 +255,7 @@ async def get_specific_by_email(email: str):
         raise HTTPException(404, f"Email already exists")
     raise HTTPException(404, f"Email not Valid!")
 
-@app.get("/api/userdata/getuserbyid/{id}", response_model=UserData)
+@app.get("/api/userdata/getuserbyid/{id}")
 async def get_user_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         response = await fetch_one_user(id)
@@ -618,7 +646,7 @@ async def create_gamelan_bali(nama_gamelan: Annotated[str, Form()], golongan: An
         raise HTTPException(400, "Something went wrong!")
 
 @app.post("/api/gamelandata/uploadaudio")
-async def upload_audio_data(id_gamelan: Annotated[str, Form()], nama_audio: Annotated[str, Form()], files: list[UploadFile]):
+async def upload_audio_data(id_gamelan: Annotated[str, Form()], deskripsi: Annotated[str, Form()], nama_audio: Annotated[str, Form()], files: list[UploadFile]):
     try: 
         saved_files_audio = []
 
@@ -629,7 +657,7 @@ async def upload_audio_data(id_gamelan: Annotated[str, Form()], nama_audio: Anno
 
         audio_path = saved_files_audio[0]
 
-        response = await create_audio_data(nama_audio, audio_path, id_gamelan)
+        response = await create_audio_data(nama_audio, audio_path, id_gamelan, deskripsi)
         
         if response:
             return response
@@ -638,7 +666,7 @@ async def upload_audio_data(id_gamelan: Annotated[str, Form()], nama_audio: Anno
         return {"message": f"Error occurred: {str(e)}"}
 
 @app.put("/api/audiogamelanbali/updateaudio/{id}")
-async def update_data_audio(id: str, nama_audio: Annotated[str, Form()] = None, files: list[UploadFile] = None):
+async def update_data_audio(id: str, nama_audio: Annotated[str, Form()] = None, deskripsi: Annotated[str, Form()] = None, files: list[UploadFile] = None):
     try: 
         audio_path = None
 
@@ -659,7 +687,7 @@ async def update_data_audio(id: str, nama_audio: Annotated[str, Form()] = None, 
 
             audio_path = saved_files_audio[0]
 
-        response = await update_audio_data(id, nama_audio, audio_path)
+        response = await update_audio_data(id, nama_audio, audio_path, deskripsi)
         
         if response:
             return response
@@ -800,3 +828,60 @@ async def get_gamelan_data_with_golongan(golongan: str, current_user: UserInDB =
         if response:
             return response
         raise HTTPException(404, f"There is no Gamelan Data with golongan {golongan}")
+
+@app.get("/api/getdesa/all")
+async def fetch_all_desa(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_desa_data()
+
+        if response:
+            return response
+        raise HTTPException(404, "There is no desa data!")
+    
+@app.get("/api/getdesa/bykecamatanid/{id}")
+async def fetch_all_desaby_kecamatan(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_desa_data_by_kecamatan_id(id)
+
+        if response:
+            return response
+        raise HTTPException(404, "There is no desa data!")
+
+@app.get("/api/getkecamatan/all")
+async def fetch_all_kecamatan(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_kecamatan_data()
+
+        if response:
+            return response
+        raise HTTPException(404, "There is no kecamatan data!")
+    
+@app.get("/api/getkecamatan/bykabupatenid/{id}")
+async def fetch_all_kecamatanby_kabupaten(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_kecamatan_data_by_kabupaten_id(id)
+
+        if response:
+            return response
+        raise HTTPException(404, "There is no kecamatan data!")
+
+
+@app.get("/api/getkabupaten/all")
+async def fetch_all_kabupaten(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_kabupaten_data()
+
+        if response:
+            return response
+        raise HTTPException(404, "There is no kabupaten data!")
+    
+@app.get("/api/getkabupaten/byprovinsiid/{id}")
+async def fetch_all_kabupatenby_provinsi(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_kabupaten_data_by_provinsi_id(id)
+
+        if response:
+            return response
+        raise HTTPException(404, "There is no kabupaten data!")
+    
+    
