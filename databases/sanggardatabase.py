@@ -54,7 +54,8 @@ async def fetch_all_sanggar():
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
-            "deskripsi": document["deskripsi"]
+            "deskripsi": document["deskripsi"],
+            "id_desa": document["id_desa"]
         }
 
         sanggar.append(sanggar_data)
@@ -107,7 +108,8 @@ async def fetch_sanggar_specific_by_id(id: str):
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
-            "deskripsi": document["deskripsi"]
+            "deskripsi": document["deskripsi"],
+            "id_desa": document["id_desa"]
         }
 
         sanggar.append(sanggar_data)
@@ -150,7 +152,8 @@ async def fetch_sanggar_specific(name: str):
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
-            "deskripsi": document["deskripsi"]
+            "deskripsi": document["deskripsi"],
+            "id_desa": document["id_desa"]
         }
 
         sanggar.append(sanggar_data)
@@ -194,7 +197,8 @@ async def fetch_sanggar_specific_by_id_creator(id: str):
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
-            "deskripsi": document["deskripsi"]
+            "deskripsi": document["deskripsi"],
+            "id_desa": document["id_desa"]
         }
         
         sanggar.append(sanggar_data)
@@ -213,7 +217,8 @@ async def create_sanggar_data(
     provinsi: str,
     kode_pos: str,
     deskripsi: str,
-    id_creator: str
+    id_creator: str,
+    id_desa: str
     ):
     
     data_sanggar: SanggarData
@@ -235,7 +240,8 @@ async def create_sanggar_data(
         "status": "unapproved",
         "createdAt": timestamps,
         "updatedAt": timestamps,
-        "deskripsi": deskripsi
+        "deskripsi": deskripsi,
+        "id_desa": id_desa
     }
 
     result = await collection.insert_one(data_sanggar)
@@ -254,7 +260,8 @@ async def update_sanggar_data(
     kabupaten: str= None,
     provinsi: str= None,
     kode_pos: str= None,
-    deskripsi: str= None
+    deskripsi: str= None,
+    id_desa: str= None
     ):
     
     object_id = ObjectId(id)
@@ -293,6 +300,9 @@ async def update_sanggar_data(
     
     if deskripsi:
         update_data["deskripsi"] = deskripsi
+
+    if id_desa:
+        update_data["id_desa"] = id_desa
 
     timestamps = time.time()
 

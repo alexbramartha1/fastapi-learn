@@ -382,7 +382,7 @@ async def delete_data_user(id: str, current_user: UserInDB = Depends(get_current
         raise HTTPException(404, f"There is no user with this name {id}")
 
 @app.post("/api/sanggardata/create")
-async def create_sanggar(files: list[UploadFile], nama_sanggar: Annotated[str, Form()], alamat: Annotated[str, Form()], no_telepon: Annotated[str, Form()], nama_jalan: Annotated[str, Form()], desa: Annotated[str, Form()], kecamatan: Annotated[str, Form()], kabupaten: Annotated[str, Form()], provinsi: Annotated[str, Form()], kode_pos: Annotated[str, Form()], deskripsi: Annotated[str, Form()], current_user: UserInDB = Depends(get_current_user)):
+async def create_sanggar(files: list[UploadFile], id_desa: Annotated[str, Form()], nama_sanggar: Annotated[str, Form()], alamat: Annotated[str, Form()], no_telepon: Annotated[str, Form()], nama_jalan: Annotated[str, Form()], desa: Annotated[str, Form()], kecamatan: Annotated[str, Form()], kabupaten: Annotated[str, Form()], provinsi: Annotated[str, Form()], kode_pos: Annotated[str, Form()], deskripsi: Annotated[str, Form()], current_user: UserInDB = Depends(get_current_user)):
 
     if current_user:
         print(current_user)
@@ -398,7 +398,7 @@ async def create_sanggar(files: list[UploadFile], nama_sanggar: Annotated[str, F
 
             path = saved_files[0]
             
-            response = await create_sanggar_data(path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi, id_creator)
+            response = await create_sanggar_data(path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi, id_creator, id_desa)
 
             return {"message": "Data saved successfully", "response": response}
             
@@ -421,7 +421,7 @@ async def get_all_sanggar(current_user: UserInDB = Depends(get_current_user)):
         raise HTTPException(404, "There is no sanggar data!")
 
 @app.put("/api/sanggardata/update/{id}")
-async def update_data_sanggar(id: str, files: list[UploadFile] = None, nama_sanggar: Annotated[str, Form()] = None, alamat: Annotated[str, Form()] = None, no_telepon: Annotated[str, Form()] = None, nama_jalan: Annotated[str, Form()] = None, desa: Annotated[str, Form()] = None, kecamatan: Annotated[str, Form()] = None, kabupaten: Annotated[str, Form()] = None, provinsi: Annotated[str, Form()] = None, kode_pos: Annotated[str, Form()] = None, deskripsi: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
+async def update_data_sanggar(id: str, files: list[UploadFile] = None, id_desa: Annotated[str, Form()] = None, nama_sanggar: Annotated[str, Form()] = None, alamat: Annotated[str, Form()] = None, no_telepon: Annotated[str, Form()] = None, nama_jalan: Annotated[str, Form()] = None, desa: Annotated[str, Form()] = None, kecamatan: Annotated[str, Form()] = None, kabupaten: Annotated[str, Form()] = None, provinsi: Annotated[str, Form()] = None, kode_pos: Annotated[str, Form()] = None, deskripsi: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         path = ""
         if files and files[0].filename:
@@ -445,7 +445,7 @@ async def update_data_sanggar(id: str, files: list[UploadFile] = None, nama_sang
             except Exception as e:
                 return {"message": f"Error occurred: {str(e)}"}
             
-        responseUpdate = await update_sanggar_data(id, path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi)
+        responseUpdate = await update_sanggar_data(id, path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi, id_desa)
         if responseUpdate:
             return responseUpdate
         raise HTTPException(404, f"There is no user with this name {id}")
