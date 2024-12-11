@@ -36,6 +36,10 @@ from databases.masyarakatdatabase import (
     fetch_all_user_with_name,
     fetch_user_specific,
     get_user,
+    create_ahli_data,
+    fetch_all_ahli_approved,
+    fetch_all_ahli_unapproved,
+    fetch_all_ahli,
 )
 
 from databases.sanggardatabase import (
@@ -90,7 +94,8 @@ from databases.alamatdatabase import (
     fetch_kecamatan_data,
     fetch_kecamatan_data_by_kabupaten_id,
     fetch_kabupaten_data,
-    fetch_kabupaten_data_by_provinsi_id
+    fetch_kabupaten_data_by_provinsi_id,
+    fetch_alamat_by_id_desa
 )
 
 SECRET_KEY = "letsmekillyou"
@@ -250,7 +255,7 @@ async def get_specific_by_email(email: str):
 
     if valid:
         response = await fetch_user_specific(email)
-        if not response:
+        if response == None:
             return response
         raise HTTPException(404, f"Email already exists")
     raise HTTPException(404, f"Email not Valid!")
@@ -270,6 +275,41 @@ async def create_data_user(nama: Annotated[str, Form()], email: Annotated[str, F
     password_hashed = get_password_hash(password)
 
     response = await create_user_data(nama, email, password_hashed)
+    if response:
+        return response
+    raise HTTPException(400, "Something went wrong!")
+
+@app.get("/api/userdata/ahliapproved")
+async def get_all_ahli_approved(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_all_ahli_approved()
+        if response:
+            return response
+        raise HTTPException(404, "Empty Ahli Gamelan Bali Data")
+
+@app.get("/api/userdata/ahliunapproved")
+async def get_all_ahli_unapproved(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_all_ahli_unapproved()
+        if response:
+            return response
+        raise HTTPException(404, "Empty Ahli Gamelan Bali Data")
+
+@app.get("/api/userdata/allahli")
+async def get_all_ahli(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_all_ahli()
+        if response:
+            return response
+        raise HTTPException(404, "Empty Ahli Gamelan Bali Data")
+
+@app.post("/api/userdata/registerahli")
+async def create_data_ahli(nama: Annotated[str, Form()], email: Annotated[str, Form()], password: Annotated[str, Form()]):
+    await get_specific_by_email(email)
+    
+    password_hashed = get_password_hash(password)
+
+    response = await create_ahli_data(nama, email, password_hashed)
     if response:
         return response
     raise HTTPException(400, "Something went wrong!")
@@ -884,4 +924,12 @@ async def fetch_all_kabupatenby_provinsi(id: str, current_user: UserInDB = Depen
             return response
         raise HTTPException(404, "There is no kabupaten data!")
     
+@app.get("/api/getallalamat/bydesaid/{id}")
+async def fetch_all_alamat_by_desa_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_alamat_by_id_desa(id)
+
+        if response:
+            return response
+        raise HTTPException(404, "There is no alamat data!")
     

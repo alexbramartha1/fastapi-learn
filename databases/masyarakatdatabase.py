@@ -105,8 +105,8 @@ async def fetch_user_specific(email: str):
     document = await collection.find_one({"email": {"$regex": f"^{local_part}@{domain}$", 
             "$options": "i"
             }})
-    
-    return {"data_user": document}
+
+    return document
 
 async def fetch_all_user_with_name(name: str):
     user = []
@@ -177,6 +177,111 @@ async def fetch_all_user():
     
     return {"data_user": user}
 
+async def fetch_all_ahli():
+    user = []
+    cursor = collection.find({"role": "ahli gamelan bali"})
+
+    async for document in cursor:
+        ts = document["createdAt"]
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
+        user_data = {
+            "_id": str(document["_id"]),
+            "nama": document["nama"],
+            "email": document["email"],
+            "foto_profile": document["foto_profile"],
+            "password": document["password"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu,
+            "status": document["status"],
+            "role": document["role"]
+        }
+
+        user.append(user_data)
+    
+    return {"data_ahli": user}
+
+async def fetch_all_ahli_approved():
+    user = []
+    cursor = collection.find({"status": "approved", "role": "ahli gamelan bali"})
+
+    async for document in cursor:
+        ts = document["createdAt"]
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
+        user_data = {
+            "_id": str(document["_id"]),
+            "nama": document["nama"],
+            "email": document["email"],
+            "foto_profile": document["foto_profile"],
+            "password": document["password"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu,
+            "status": document["status"],
+            "role": document["role"]
+        }
+
+        user.append(user_data)
+    
+    return {"data_ahli": user}
+
+async def fetch_all_ahli_unapproved():
+    user = []
+    cursor = collection.find({"status": "unapproved", "role": "ahli gamelan bali"})
+
+    async for document in cursor:
+        ts = document["createdAt"]
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
+        user_data = {
+            "_id": str(document["_id"]),
+            "nama": document["nama"],
+            "email": document["email"],
+            "foto_profile": document["foto_profile"],
+            "password": document["password"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu,
+            "status": document["status"],
+            "role": document["role"]
+        }
+
+        user.append(user_data)
+    
+    return {"data_ahli": user}
+
 async def create_user_data(nama: str, email: str, password: str):
     document: UserData
     
@@ -196,6 +301,27 @@ async def create_user_data(nama: str, email: str, password: str):
     result = await collection.insert_one(document)
     
     return {"_id": str(result.inserted_id), "nama": nama, "message": "Data created successfully"}
+
+async def create_ahli_data(nama: str, email: str, password: str):
+    document: UserData
+    
+    timestamps = time.time()
+
+    document = {
+        "nama": nama,
+        "email": email,
+        "foto_profile": "none",
+        "password": password,
+        "createdAt": timestamps,
+        "updatedAt": timestamps,
+        "status": "unapproved",
+        "role": "ahli gamelan bali"
+    }
+
+    result = await collection.insert_one(document)
+    
+    return {"_id": str(result.inserted_id), "nama": nama, "message": "Data created successfully"}
+
 
 async def update_user_data(id: str, email: str, nama: str):
     object_id = ObjectId(id)
