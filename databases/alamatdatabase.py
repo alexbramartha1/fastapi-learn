@@ -122,13 +122,13 @@ async def fetch_kabupaten_data_by_provinsi_id(id: str):
 
     return {"kabupaten-data": kabupaten}
 
-async def fetch_alamat_by_id_desa(nameDesa: str):
-    # objectId = ObjectId(id)
+async def fetch_alamat_by_id_desa(id: str):
+    objectId = ObjectId(id)
     desaListArray = []
     kecamatanListArray = []
     kabupatenListArray = []
     
-    document = await collection_desa_list.find_one({'nama_desa': f'{nameDesa}'})
+    document = await collection_desa_list.find_one({"_id": objectId})
 
     if document:
         id_kec_in_desa = document["kecamatan_id"]
