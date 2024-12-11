@@ -122,44 +122,47 @@ async def fetch_kabupaten_data_by_provinsi_id(id: str):
 
     return {"kabupaten-data": kabupaten}
 
-
-async def fetch_alamat_by_id_desa(id: str):
-    objectId = ObjectId(id)
+async def fetch_alamat_by_id_desa(nameDesa: str):
+    # objectId = ObjectId(id)
     desaListArray = []
     kecamatanListArray = []
     kabupatenListArray = []
     
-    document = await collection_desa_list.find_one({"_id": objectId})
+    document = await collection_desa_list.find_one({'nama_desa': f'{nameDesa}'})
 
-    # Mendapatkan list desa berdasarkan kecamatan ID 
-    id_kec_in_desa = document["kecamatan_id"]
-    documentDesa = collection_desa_list.find({"kecamatan_id": id_kec_in_desa})
-    async for desaList in documentDesa:
-        desaData = {
-            "_id": str(desaList["_id"]),
-            "nama_desa": desaList["nama_desa"],
-            "kecamatan_id": desaList["kecamatan_id"]
+    if document:
+        id_kec_in_desa = document["kecamatan_id"]
+
+        documentDesa = collection_desa_list.find({"kecamatan_id": id_kec_in_desa})
+        async for desaList in documentDesa:
+            desaData = {
+                "_id": str(desaList["_id"]),
+                "nama_desa": desaList["nama_desa"],
+                "kecamatan_id": desaList["kecamatan_id"]
+            }
+
+            desaListArray.append(desaData)
+
+        objectKecId = ObjectId(id_kec_in_desa)
+        documentKecamatan = await collection_kecamatan_list.find_one({"_id": objectKecId})
+
+        # Mendapatkan list kecamatan berdasarkan kabupaten ID
+        id_kab_in_kec = documentKecamatan["kabupaten_id"]
+        documentKecamatanList = collection_kecamatan_list.find({"kabupaten_id": id_kab_in_kec})
+        async for kecamatanList in documentKecamatanList:
+            kecamatanData = {
+                "_id": str(kecamatanList["_id"]),
+                "nama_kecamatan": kecamatanList["nama_kecamatan"],
+                "kabupaten_id": kecamatanList["kabupaten_id"]
+            }
+
+            kecamatanListArray.append(kecamatanData)
+
+        return {
+            "desa_data": desaListArray,
+            "kecamatan_data": kecamatanListArray,
+            "kabupaten_id": id_kab_in_kec
         }
-
-        desaListArray.append(desaData)
-
-    objectKecId = ObjectId(id_kec_in_desa)
-    documentKecamatan = await collection_kecamatan_list.find_one({"_id": objectKecId})
-
-    # Mendapatkan list kecamatan berdasarkan kabupaten ID
-    id_kab_in_kec = documentKecamatan["kabupaten_id"]
-    documentKecamatanList = collection_kecamatan_list.find({"kabupaten_id": id_kab_in_kec})
-    async for kecamatanList in documentKecamatanList:
-        kecamatanData = {
-            "_id": str(kecamatanList["_id"]),
-            "nama_kecamatan": kecamatanList["nama_kecamatan"],
-            "kabupaten_id": kecamatanList["kabupaten_id"]
-        }
-
-        kecamatanListArray.append(kecamatanData)
-
-    return {
-        "desa_data": desaListArray,
-        "kecamatan_data": kecamatanListArray,
-        "kabupaten_id": id_kab_in_kec
-    }
+    
+    return None
+    

@@ -924,10 +924,10 @@ async def fetch_all_kabupatenby_provinsi(id: str, current_user: UserInDB = Depen
             return response
         raise HTTPException(404, "There is no kabupaten data!")
     
-@app.get("/api/getallalamat/bydesaid/{id}")
-async def fetch_all_alamat_by_desa_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+@app.get("/api/getallalamat/bydesaid/{nama_desa}")
+async def fetch_all_alamat_by_desa_id(nama_desa: str, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
-        response = await fetch_alamat_by_id_desa(id)
+        response = await fetch_alamat_by_id_desa(nama_desa)
 
         if response:
             return response
