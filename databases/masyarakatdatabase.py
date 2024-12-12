@@ -97,7 +97,7 @@ async def fetch_one_user(id: str):
 
         user_data_full.append(user_data)
 
-    return {"data_user": user_data_full}
+    return user_data_full
 
 async def fetch_user_specific(email: str):
     local_part, domain = email.split('@')
