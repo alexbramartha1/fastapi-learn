@@ -317,7 +317,6 @@ async def create_ahli_data(nama: str, email: str, password: str):
     
     return {"_id": str(result.inserted_id), "nama": nama, "message": "Data created successfully"}
 
-
 async def update_user_data(id: str, email: str, nama: str):
     object_id = ObjectId(id)
 
@@ -341,7 +340,7 @@ async def update_user_data(id: str, email: str, nama: str):
 
     document = await collection.find_one({"_id": object_id})
     
-    return document
+    return {"message": "Successfully Updated Data!", "updated_data": update_data}
 
 async def update_user_photo(id: str, foto: str):
     object_id = ObjectId(id)

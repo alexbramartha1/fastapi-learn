@@ -314,7 +314,7 @@ async def create_data_ahli(nama: Annotated[str, Form()], email: Annotated[str, F
         return response
     raise HTTPException(400, "Something went wrong!")
 
-@app.put("/api/userdata/updateprofile/{id}", response_model=UserData)
+@app.put("/api/userdata/updateprofile/{id}")
 async def update_data_user(id: str, email: Annotated[str, Form()] = None, nama: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         if email:
