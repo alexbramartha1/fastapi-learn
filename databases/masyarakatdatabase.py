@@ -64,40 +64,35 @@ async def get_user(email: str):
 async def fetch_one_user(id: str):
     object_id = ObjectId(id)
     
-    user_data_full = []
+    document = await collection.find_one({"_id": object_id})
 
-    document = collection.find({"_id": object_id})
+    ts = document["createdAt"]
+    dt = datetime.fromtimestamp(ts)
+    tanggal = dt.date()
+    waktu = dt.time()
 
-    async for user in document:
-        ts = user["createdAt"]
-        dt = datetime.fromtimestamp(ts)
-        tanggal = dt.date()
-        waktu = dt.time()
+    updateTs = document["updatedAt"]
+    updateDt = datetime.fromtimestamp(updateTs)
+    updateTanggal = updateDt.date()
+    updateWaktu = updateDt.time()
+    
+    user_data = {
+        "_id": str(document["_id"]),
+        "nama": document["nama"],
+        "email": document["email"],
+        "foto_profile": document["foto_profile"],
+        "password": document["password"],
+        "createdAt": dt,
+        "createdDate": tanggal,
+        "createdTime": waktu,
+        "updatedAt": updateDt,
+        "updatedDate": updateTanggal,
+        "updateTime": updateWaktu,
+        "status": document["status"],
+        "role": document["role"]
+    }
 
-        updateTs = user["updatedAt"]
-        updateDt = datetime.fromtimestamp(updateTs)
-        updateTanggal = updateDt.date()
-        updateWaktu = updateDt.time()
-        
-        user_data = {
-            "_id": str(user["_id"]),
-            "nama": user["nama"],
-            "email": user["email"],
-            "foto_profile": user["foto_profile"],
-            "password": user["password"],
-            "createdAt": dt,
-            "createdDate": tanggal,
-            "createdTime": waktu,
-            "updatedAt": updateDt,
-            "updatedDate": updateTanggal,
-            "updateTime": updateWaktu,
-            "status": user["status"],
-            "role": user["role"]
-        }
-
-        user_data_full.append(user_data)
-
-    return user_data_full
+    return user_data
 
 async def fetch_user_specific(email: str):
     local_part, domain = email.split('@')
