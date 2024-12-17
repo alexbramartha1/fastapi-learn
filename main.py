@@ -98,6 +98,15 @@ from databases.alamatdatabase import (
     fetch_alamat_by_id_desa
 )
 
+from databases.audioinstrumendatabase import (
+    create_audio_data_instrumen,
+    fetch_audio_by_instrumen_id,
+    delete_audio_instrumen_data,
+    update_audio_instrumen_data,
+    fetch_audio_path_instrumen,
+    fetch_all_audio_instrumen
+)
+
 SECRET_KEY = "letsmekillyou"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 10000
@@ -932,4 +941,84 @@ async def fetch_all_alamat_by_desa_id(id: str, current_user: UserInDB = Depends(
         if response:
             return response
         raise HTTPException(404, "There is no alamat data!")
+
+@app.post("/api/audioinstrumen/uploadaudio")
+async def upload_audio_instrumen_data(instrument_id: Annotated[str, Form()], nama_audio: Annotated[str, Form()], files: list[UploadFile]):
+    try: 
+        saved_files_audio = []
+
+        for file in files:
+            file_content = await file.read()
+            response = cloudinary.uploader.upload(file_content)
+            saved_files_audio.append(response["secure_url"])
+
+        audio_path = saved_files_audio[0]
+
+        response = await create_audio_data_instrumen(nama_audio, audio_path, instrument_id)
+        
+        if response:
+            return response
     
+    except Exception as e:
+        return {"message": f"Error occurred: {str(e)}"}
+
+@app.put("/api/audioinstrumen/updateaudio/{id}")
+async def update_data_audio(id: str, nama_audio: Annotated[str, Form()] = None, files: list[UploadFile] = None):
+    try: 
+        audio_path = None
+
+        if files[0].filename:
+            audioPast = await get_audio_instrumen_path_by_id(id)
+
+            if audioPast:
+                public_id = extract_public_id(audioPast)
+
+                response = cloudinary.uploader.destroy(public_id)
+
+            saved_files_audio = []
+
+            for file in files:
+                file_content = await file.read()
+                response = cloudinary.uploader.upload(file_content)
+                saved_files_audio.append(response["secure_url"])
+
+            audio_path = saved_files_audio[0]
+
+        response = await update_audio_instrumen_data(id, nama_audio, audio_path)
+        
+        if response:
+            return response
+        
+    except Exception as e:
+        return {"message": f"Error occurred: {str(e)}"}
+
+@app.get("/api/audioinstrumen/fetchallaudio")
+async def fetch_audio_instrumen_all_data(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_all_audio_instrumen()
+        if response:
+            return response
+        raise HTTPException(404, "There is no audio data with this!")
+
+async def get_audio_instrumen_path_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_audio_path_instrumen(id)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no audio data with this id {id}!")
+
+@app.get("/api/audioinstrumen/fetch/byinstrumenid/{id}")
+async def get_audio_by_instrumen_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_audio_by_instrumen_id(id)
+        if response:
+            return response
+        raise HTTPException(404, "There is no data audio Instrumen")
+
+@app.delete("/api/audioinstrumen/deletedataaudio/")
+async def delete_data_audio_instrumen_by_id(id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await delete_audio_instrumen_data(id)
+        if response == True:
+            return "Successfully deleted audio data!"
+        raise HTTPException(404, f"There is no audio data with id {id}")

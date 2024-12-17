@@ -30,7 +30,8 @@ async def fetch_audio_gamelan_by_gamelan_id(id: List[str]):
             "_id": str(audio_gamelan_data["_id"]),
             "id_gamelan": audio_gamelan_data["id_gamelan"],
             "audio_name": audio_gamelan_data["audio_name"],
-            "audio_path": audio_gamelan_data["audio_path"]
+            "audio_path": audio_gamelan_data["audio_path"],
+            "deskripsi": audio_gamelan_data["deskripsi"]
         }
 
         audio_data.append(audio_data_gamelan)
@@ -244,7 +245,6 @@ async def fetch_specific_gamelan(id: str):
     gamelan_id_list = []
     instrument_id_list = []
 
-
     async for data in document:
         ts = data["createdAt"]
         
@@ -306,6 +306,7 @@ async def fetch_specific_gamelan(id: str):
     audio_data = await fetch_audio_gamelan_by_gamelan_id(gamelan_id_list)
     full_data_with_audio = []
 
+    audio_list = []
     for gamelan_data_with_audio in gamelan:
         gamelan_data_with_audio['audio_gamelan'] = [
             audio for audio in audio_data if gamelan_data_with_audio['_id'] == audio['id_gamelan']
