@@ -19,6 +19,50 @@ database = client["tugas-akhir-data"]
 collection = database["gamelan-bali"]
 collection_instrumen = database["instrumen-gamelan"]
 collection_audio_gamelan = database["audio-gamelan"]
+collection_status = database["status"]
+collection_golongan = database["golongan"]
+
+async def get_status():
+    status = []
+
+    response = collection_status.find({})
+    
+    async for response_status in response:
+        status_data = {
+            "_id": str(response_status["_id"]),
+            "status": response_status["status"]
+        }
+        status.append(status_data)
+
+    return {"status_list": status}
+
+async def get_golongan():
+    golongan = []
+
+    response = collection_golongan.find({})
+    
+    async for response_golongan in response:
+        golongan_data = {
+            "_id": str(response_golongan["_id"]),
+            "golongan": response_golongan["golongan"],
+            "deskripsi": response_golongan["deskripsi"]
+        }
+        golongan.append(golongan_data)
+
+    return {"golongan_list": golongan}
+
+async def get_golongan_by_id(golongan_id: str):
+    objectId = ObjectId(golongan_id)
+
+    response = await collection_golongan.find_one({"_id": objectId})
+    
+    golongan_data = {
+        "_id": str(response["_id"]),
+        "golongan": response["golongan"],
+        "deskripsi": response["deskripsi"]
+    }
+
+    return golongan_data
 
 async def fetch_audio_gamelan_by_gamelan_id(id: List[str]):
     audio_data = []
@@ -56,14 +100,16 @@ async def fetch_all_gamelan_by_instrument_id(id: str):
         updateTanggal = updateDt.date()
         updateWaktu = updateDt.time()
 
+        golongan_name = await get_golongan_by_id(instrument["golongan_id"])
+
         gamelan_data = {
             "_id": str(instrument["_id"]),
             "nama_gamelan": instrument["nama_gamelan"],
-            "golongan": instrument["golongan"],
+            "golongan": golongan_name["golongan"],
             "description": instrument["description"],
             "upacara": instrument["upacara"],
             "instrument_id": instrument["instrument_id"],
-            "status": instrument["status"],
+            "status_id": instrument["status_id"],
             "createdAt": dt,
             "createdDate": tanggal,
             "createdTime": waktu,
@@ -108,14 +154,16 @@ async def fetch_all_instrument_by_gamelan_name(name: str):
         updateTanggal = updateDt.date()
         updateWaktu = updateDt.time()
 
+        golongan_name = await get_golongan_by_id(instrument["golongan_id"])
+
         gamelan_data = {
             "_id": str(instrument["_id"]),
             "nama_gamelan": instrument["nama_gamelan"],
-            "golongan": instrument["golongan"],
+            "golongan": golongan_name["golongan"],
             "description": instrument["description"],
             "upacara": instrument["upacara"],
             "instrument_id": instrument["instrument_id"],
-            "status": instrument["status"],
+            "status_id": instrument["status_id"],
             "createdAt": dt,
             "createdDate": tanggal,
             "createdTime": waktu,
@@ -201,14 +249,16 @@ async def fetch_all_gamelan():
         updateTanggal = updateDt.date()
         updateWaktu = updateDt.time()
 
+        golongan_name = await get_golongan_by_id(data["golongan_id"])
+
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
-            "golongan": data["golongan"],
+            "golongan": golongan_name["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
             "instrument_id": data["instrument_id"],
-            "status": data["status"],
+            "status_id": data["status_id"],
             "createdAt": dt,
             "createdDate": tanggal,
             "createdTime": waktu,
@@ -256,15 +306,17 @@ async def fetch_specific_gamelan(id: str):
         updateDt = datetime.fromtimestamp(updateTs)
         updateTanggal = updateDt.date()
         updateWaktu = updateDt.time()
+        
+        golongan_name = await get_golongan_by_id(data["golongan_id"])
 
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
-            "golongan": data["golongan"],
+            "golongan": golongan_name["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
             "instrument_id": data["instrument_id"],
-            "status": data["status"],
+            "status_id": data["status_id"],
             "createdAt": dt,
             "createdDate": tanggal,
             "createdTime": waktu,
@@ -337,14 +389,16 @@ async def fetch_specific_gamelan_by_golongan(golongan: str):
         updateTanggal = updateDt.date()
         updateWaktu = updateDt.time()
 
+        golongan_name = await get_golongan_by_id(data["golongan_id"])
+
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
-            "golongan": data["golongan"],
+            "golongan": golongan_name["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
             "instrument_id": data["instrument_id"],
-            "status": data["status"],
+            "status_id": data["status_id"],
             "createdAt": dt,
             "createdDate": tanggal,
             "createdTime": waktu,
@@ -390,15 +444,16 @@ async def fetch_byname_gamelan(nama_gamelan: str):
         updateDt = datetime.fromtimestamp(updateTs)
         updateTanggal = updateDt.date()
         updateWaktu = updateDt.time()
+        golongan_name = await get_golongan_by_id(data["golongan_id"])
 
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
-            "golongan": data["golongan"],
+            "golongan": golongan_name["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
             "instrument_id": data["instrument_id"],
-            "status": data["status"],
+            "status_id": data["status_id"],
             "createdAt": dt,
             "createdDate": tanggal,
             "createdTime": waktu,
@@ -437,16 +492,24 @@ async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str
     #     raise HTTPException(400, "Invalid JSON format for audio_gamelan")
 
     # print(audio_gamelan_dicts)
+    status = await get_status()
+    status_id: str = ""
+
+    if status:
+        for status_list in status["status_list"]:
+            if status_list.get("status") == "Pending":
+                status_id = status_list.get("_id", "")
+                break       
 
     timestamps = time.time()
 
     gamelan_data = {
         "nama_gamelan": nama_gamelan,
-        "golongan": golongan,
+        "golongan_id": golongan,
         "description": description,
         "upacara": upacara,
         "instrument_id": instrument_id,
-        "status": "unapproved",
+        "status_id": status_id,
         "createdAt": timestamps,
         "updatedAt": timestamps
     }
@@ -457,18 +520,27 @@ async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str
 
 async def approval_gamelan_data(id: str, status: str):
     object_id = ObjectId(id)
+    status = await get_status()
+    status_id: str = ""
+    status_name: str = ""
+    if status:
+        for status_list in status["status_list"]:
+            if status_list.get("_id") == status:
+                status_id = status_list.get("_id", "")
+                status_name = status_list.get("status", "")
+                break       
 
     timestamps = time.time()
     
     if status == "approved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
+        await collection.update_one({"_id": object_id}, {"$set": {"status_id": status_id, "updatedAt": timestamps}})
 
-        return f"Data Gamelan Bali {status}"
+        return f"Data Gamelan Bali {status_name}"
     
     if status == "unapproved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
+        await collection.update_one({"_id": object_id}, {"$set": {"status_id": status_id, "updatedAt": timestamps}})
 
-        return f"Data Gamelan Bali {status}"
+        return f"Data Gamelan Bali {status_name}"
 
 async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, description: str, instrument_id: List[str], upacara: List[str]):
     object_id = ObjectId(id)
@@ -512,7 +584,7 @@ async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, descrip
         updated_data["nama_gamelan"] = nama_gamelan
 
     if golongan:
-        updated_data["golongan"] = golongan
+        updated_data["golongan_id"] = golongan
 
     if description:
         updated_data["description"] = description
@@ -529,7 +601,7 @@ async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, descrip
     print(updated_data)
 
     timestamps = time.time()
-    
+
     if updated_data:
         updated_data["updatedAt"] = timestamps
 

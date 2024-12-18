@@ -278,12 +278,12 @@ async def get_user_by_id(id: str, current_user: UserInDB = Depends(get_current_u
         raise HTTPException(404, f"There is no user with this name {id}")
 
 @app.post("/api/userdata/registeruser")
-async def create_data_user(nama: Annotated[str, Form()], email: Annotated[str, Form()], password: Annotated[str, Form()]):
+async def create_data_user(nama: Annotated[str, Form()], email: Annotated[str, Form()], password: Annotated[str, Form()], role_input: Annotated[str, Form()]):
     await get_specific_by_email(email)
     
     password_hashed = get_password_hash(password)
 
-    response = await create_user_data(nama, email, password_hashed)
+    response = await create_user_data(nama, email, password_hashed, role_input)
     if response:
         return response
     raise HTTPException(400, "Something went wrong!")

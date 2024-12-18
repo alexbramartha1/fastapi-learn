@@ -15,7 +15,46 @@ client = AsyncIOMotorClient(uri)
 
 database = client["tugas-akhir-data"]
 
-collection = database["pengguna-masyarakat"]
+collection = database["users"]
+collection_role = database["role"]
+collection_status = database["status"]
+
+async def get_role():
+    role = []
+
+    response = collection_role.find({})
+    
+    async for response_role in response:
+        role_data = {
+            "_id": str(response_role["_id"]),
+            "role": response_role["role"],
+            "default_status_id": response_role["default_status_id"]
+        }
+        role.append(role_data)
+
+    return {"role_list": role}
+
+async def get_status():
+    status = []
+
+    response = collection_status.find({})
+    
+    async for response_status in response:
+        status_data = {
+            "_id": str(response_status["_id"]),
+            "status": response_status["status"]
+        }
+        status.append(status_data)
+
+    return {"status_list": status}
+
+async def get_status_by_id(id: str):
+    object_id = ObjectId(id)
+    
+    response = await collection_status.find_one({"_id": object_id})
+    
+    if response:
+        return {"_id": str(response["_id"]), "status": response["status"]}
 
 async def get_user(email: str):
     local_part, domain = email.split('@')
@@ -49,12 +88,12 @@ async def get_user(email: str):
             foto_profile=user_dict["foto_profile"],
             password=user_dict["password"],
             test=user_dict["_id"],
-            status=user_dict["status"],
             createdAtTime=str(waktu),
             createdAtDate=str(tanggal),
             updatedAtTime=str(updateWaktu),
             updatedAtDate=str(updateTanggal),
-            role=user_dict["role"]
+            role=user_dict["role_id"],
+            status=user_dict["status_id"]
         )
 
         return user
@@ -88,8 +127,8 @@ async def fetch_one_user(id: str):
         "updatedAt": updateDt,
         "updatedDate": updateTanggal,
         "updateTime": updateWaktu,
-        "status": document["status"],
-        "role": document["role"]
+        "role_id": document["role_id"],
+        "status_id": document["status_id"]
     }
 
     return user_data
@@ -130,8 +169,8 @@ async def fetch_all_user_with_name(name: str):
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
-            "status": document["status"],
-            "role": document["role"]
+            "role_id": document["role_id"],
+            "status_id": document["status_id"]
         }
         user.append(user_data)
     
@@ -164,17 +203,17 @@ async def fetch_all_user():
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
-            "status": document["status"],
-            "role": document["role"]
+            "role_id": document["role_id"],
+            "status_id": document["status_id"]
         }
 
         user.append(user_data)
     
     return {"data_user": user}
 
-async def fetch_all_ahli():
+async def fetch_all_ahli(role: str):
     user = []
-    cursor = collection.find({"role": "ahli gamelan bali"})
+    cursor = collection.find({"role_id": role})
 
     async for document in cursor:
         ts = document["createdAt"]
@@ -199,17 +238,17 @@ async def fetch_all_ahli():
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
-            "status": document["status"],
-            "role": document["role"]
+            "role_id": document["role_id"],
+            "status_id": document["status_id"]
         }
 
         user.append(user_data)
     
     return {"data_ahli": user}
 
-async def fetch_all_ahli_approved():
+async def fetch_all_ahli_approved(role: str, status: str):
     user = []
-    cursor = collection.find({"status": "approved", "role": "ahli gamelan bali"})
+    cursor = collection.find({"status_id": status, "role_id": role})
 
     async for document in cursor:
         ts = document["createdAt"]
@@ -234,17 +273,17 @@ async def fetch_all_ahli_approved():
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
-            "status": document["status"],
-            "role": document["role"]
+            "role_id": document["role_id"],
+            "status_id": document["status_id"]
         }
 
         user.append(user_data)
     
     return {"data_ahli": user}
 
-async def fetch_all_ahli_unapproved():
+async def fetch_all_ahli_unapproved(role: str, status: str):
     user = []
-    cursor = collection.find({"status": "unapproved", "role": "ahli gamelan bali"})
+    cursor = collection.find({"status_id": status, "role_id": role})
 
     async for document in cursor:
         ts = document["createdAt"]
@@ -269,17 +308,26 @@ async def fetch_all_ahli_unapproved():
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
-            "status": document["status"],
-            "role": document["role"]
+            "role_id": document["role_id"],
+            "status_id": document["status_id"]
         }
 
         user.append(user_data)
     
     return {"data_ahli": user}
 
-async def create_user_data(nama: str, email: str, password: str):
+async def create_user_data(nama: str, email: str, password: str, role_input: str):
     document: UserData
-    
+    role = await get_role()
+
+    status_id: str = ""
+
+    if role:
+        for role_item in role["role_list"]:
+            if role_item.get("_id") == role_input:
+                status_id = role_item.get("default_status_id", "")
+                break 
+
     timestamps = time.time()
 
     document = {
@@ -289,8 +337,8 @@ async def create_user_data(nama: str, email: str, password: str):
         "password": password,
         "createdAt": timestamps,
         "updatedAt": timestamps,
-        "status": "approved",
-        "role": "masyarakat"
+        "status_id": status_id,
+        "role_id": role_input 
     }
 
     result = await collection.insert_one(document)
@@ -388,6 +436,7 @@ def extract_public_id(secure_url):
         return match.group(1)
     else:
         return None
+    
 # async def delete_user_data(name):
 #     await collection.delete_one({"nama": {"$regex": f"(?i){name}"}})
 #     return True
