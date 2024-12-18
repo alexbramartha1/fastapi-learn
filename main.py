@@ -345,7 +345,7 @@ async def upload_photo_profile_pengguna(id: str, files: list[UploadFile], curren
 
 
         try:
-            if current_user.foto_profile:
+            if current_user.foto_profile != "none":
                 url_link = current_user.foto_profile
 
                 public_id = extract_public_id(url_link)
@@ -355,7 +355,6 @@ async def upload_photo_profile_pengguna(id: str, files: list[UploadFile], curren
             uploaded_files = []
 
             for file in files:
-
                 file_content = await file.read()
                 response = cloudinary.uploader.upload(file_content)
                 uploaded_files.append(response["secure_url"])
