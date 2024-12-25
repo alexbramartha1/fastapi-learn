@@ -72,14 +72,30 @@ async def fetch_all_audio_instrumen():
         "audio_array": audio_array
     }
 
-
 async def fetch_audio_path_instrumen(id: str):
     object_id = ObjectId(id)
     document = await collection_audio_instrumen.find_one({"_id": object_id})
     audio_path = document.get("audio_path")
     return audio_path
 
-async def delete_audio_instrumen_data(id: List[str]):
+async def delete_audio_instrumen_data(id: str):
+    audio_file = []
+        
+    cursor = collection_audio_instrumen.find({"instrument_id": id})
+
+    async for document in cursor:
+        audio_file.append(document["audio_path"])
+
+    for path_todelete_audio in audio_file:
+        public_id = extract_public_id(path_todelete_audio)
+
+        cloudinary.uploader.destroy(public_id)
+
+    await collection_audio_instrumen.delete_many({"instrument_id": id})
+
+    return True
+
+async def delete_audio_instrumen_spesifik_data(id: List[str]):
     object_id = []
     audio_file = []
 
@@ -90,9 +106,7 @@ async def delete_audio_instrumen_data(id: List[str]):
     cursor = collection_audio_instrumen.find({"_id": {"$in": object_id}})
 
     async for document in cursor:
-        audiofile = document["audio_path"]
-
-        audio_file.append(audiofile)
+        audio_file.append(document["audio_path"])
 
     for path_todelete_audio in audio_file:
         public_id = extract_public_id(path_todelete_audio)

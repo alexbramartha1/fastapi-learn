@@ -75,34 +75,26 @@ async def fetch_all_audio():
         "audio_array": audio_array
     }
 
-
 async def fetch_audio_path(id: str):
     object_id = ObjectId(id)
     document = await collection_audio_gamelan.find_one({"_id": object_id})
     audio_path = document.get("audio_path")
     return audio_path
 
-async def delete_audio_data(id: List[str]):
-    object_id = []
+async def delete_audio_data(id: str):
     audio_file = []
-
-    for id_data in id:  
-        data_id_full = ObjectId(id_data)
-        object_id.append(data_id_full)
         
-    cursor = collection_audio_gamelan.find({"_id": {"$in": object_id}})
+    cursor = collection_audio_gamelan.find({"id_gamelan": id})
 
     async for document in cursor:
-        audiofile = document["audio_path"]
-
-        audio_file.append(audiofile)
+        audio_file.append(document["audio_path"])
 
     for path_todelete_audio in audio_file:
         public_id = extract_public_id(path_todelete_audio)
 
         cloudinary.uploader.destroy(public_id)
 
-    await collection_audio_gamelan.delete_many({"_id": {"$in": object_id}})
+    await collection_audio_gamelan.delete_many({"id_gamelan": id})
 
     return True
 
@@ -134,3 +126,27 @@ async def update_audio_data(id: str, audio_name: str, audio_path: str, deskripsi
     
     return {"message": "Data updated successfully", "updated_data": updated_data}
  
+async def delete_audio_gamelan_spesifik(id: List[str]):
+    object_id = []
+    audio_file = []
+
+    for id_data in id:  
+        data_id_full = ObjectId(id_data)
+        object_id.append(data_id_full)
+    print(object_id)
+    cursor = collection_audio_gamelan.find({"_id": {"$in": object_id}})
+    print(cursor)
+    async for document in cursor:
+        audio_file.append(document["audio_path"])
+
+    print(audio_file)
+
+    for path_todelete_audio in audio_file:
+        public_id = extract_public_id(path_todelete_audio)
+        print(public_id)
+        response = cloudinary.uploader.destroy(public_id)
+        print(response)
+
+    await collection_audio_gamelan.delete_many({"_id": {"$in": object_id}})
+
+    return True

@@ -115,7 +115,8 @@ async def fetch_all_gamelan_by_instrument_id(id: str):
             "createdTime": waktu,
             "updatedAt": updateDt,
             "updatedDate": updateTanggal,
-            "updateTime": updateWaktu
+            "updateTime": updateWaktu,
+            "audio_data": []
         }
     
         gamelan_data_spec.append(gamelan_data)
@@ -123,12 +124,14 @@ async def fetch_all_gamelan_by_instrument_id(id: str):
         gamelan_id_list.append(str(instrument["_id"]))
 
     audio_data = await fetch_audio_gamelan_by_gamelan_id(gamelan_id_list)
+    full_data_with_audio = []
+    for gamelan_data_full_with_audio in gamelan_data_spec:
+        gamelan_data_full_with_audio["audio_data"] = [audio for audio in audio_data if audio["id_gamelan"] == gamelan_data_full_with_audio["_id"]]
+        full_data_with_audio.append(gamelan_data_full_with_audio)
 
-    if gamelan_data_spec:
-
+    if full_data_with_audio:
         return {
-            "gamelan_data": gamelan_data_spec,
-            "audio_data": audio_data
+            "gamelan_data": full_data_with_audio
         }
     
     return f"There is no data gamelan with this id {id}"
@@ -373,7 +376,7 @@ async def fetch_specific_gamelan(id: str):
 
 async def fetch_specific_gamelan_by_golongan(golongan: str):
     gamelan = []
-    document = collection.find({"golongan": {"$regex": f"(?i){golongan}"}})
+    document = collection.find({"golongan_id": {"$regex": f"(?i){golongan}"}})
 
     gamelan_id_list = []
 
@@ -520,27 +523,18 @@ async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str
 
 async def approval_gamelan_data(id: str, status: str):
     object_id = ObjectId(id)
-    status = await get_status()
-    status_id: str = ""
-    status_name: str = ""
-    if status:
-        for status_list in status["status_list"]:
-            if status_list.get("_id") == status:
-                status_id = status_list.get("_id", "")
-                status_name = status_list.get("status", "")
-                break       
-
+    status_name: str = None
     timestamps = time.time()
-    
-    if status == "approved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status_id": status_id, "updatedAt": timestamps}})
+    status_list = await get_status()
+    if status_list:
+        for status_data in status_list["status_list"]:
+            if status_data.get("_id") == status:
+                status_name = status_data.get("status", "")
+                break    
 
-        return f"Data Gamelan Bali {status_name}"
-    
-    if status == "unapproved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status_id": status_id, "updatedAt": timestamps}})
+    await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
 
-        return f"Data Gamelan Bali {status_name}"
+    return f"Data Gamelan Bali {status_name}"
 
 async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, description: str, instrument_id: List[str], upacara: List[str]):
     object_id = ObjectId(id)
@@ -614,25 +608,6 @@ async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, descrip
  
 async def delete_gamelan_bali(id: str):
     object_id = ObjectId(id)
-
-    audio_gamelan = []
-
-    cursor = collection.find({"_id": object_id})
-
-    async for document in cursor:
-        audio_gamelan_data = document["audio_gamelan"]
-        
-        for audio in audio_gamelan_data:
-            audio_data = audio["audio_path"]
-
-            audio_gamelan.append(audio_data)
-
-    for path_todelete_audio in audio_gamelan:
-        if os.path.exists(path_todelete_audio):
-            os.remove(path_todelete_audio)
-            print(f"The file {path_todelete_audio} has been deleted.")
-        else:
-            print(f"The file {path_todelete_audio} does not exist.")
 
     await collection.delete_one({"_id": object_id})
 

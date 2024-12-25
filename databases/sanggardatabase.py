@@ -1,4 +1,5 @@
 from models.sanggarbali import *
+from databases.alamatdatabase import fetch_nama_alamat_by_id_desa
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
@@ -15,50 +16,80 @@ client = AsyncIOMotorClient(uri)
 
 database = client["tugas-akhir-data"]
 
-collection = database["sanggar-gamelan"]
+collection = database["sanggar-gamelan-new"]
+collection_status = database["status"]
+
+async def get_status():
+    status = []
+
+    response = collection_status.find({})
+    
+    async for response_status in response:
+        status_data = {
+            "_id": str(response_status["_id"]),
+            "status": response_status["status"]
+        }
+        status.append(status_data)
+
+    return {"status_list": status}
 
 async def fetch_all_sanggar():
     sanggar = []
 
+    cursor_id = collection.find({})
+
+    idDesa = []
+    async for deseid in cursor_id:  
+        idDesa.append(deseid["desa_id"]) 
+
+    alamat_lengkap_nama = await fetch_nama_alamat_by_id_desa(idDesa)
+    
     cursor = collection.find({})
+    if alamat_lengkap_nama:
+        async for document in cursor:
+            desa_data = alamat_lengkap_nama.get(document["desa_id"], {})
 
-    async for document in cursor:
-        ts = document["createdAt"]
-        
-        dt = datetime.fromtimestamp(ts)
-        tanggal = dt.date()
-        waktu = dt.time()
+            ts = document["createdAt"]
+            
+            dt = datetime.fromtimestamp(ts)
+            tanggal = dt.date()
+            waktu = dt.time()
 
-        updateTs = document["updatedAt"]
-        updateDt = datetime.fromtimestamp(updateTs)
-        updateTanggal = updateDt.date()
-        updateWaktu = updateDt.time()
+            updateTs = document["updatedAt"]
+            updateDt = datetime.fromtimestamp(updateTs)
+            updateTanggal = updateDt.date()
+            updateWaktu = updateDt.time()
 
-        sanggar_data = {
-            "_id": str(document["_id"]),
-            "image": document["image"],
-            "nama_sanggar": document["nama_sanggar"],
-            "alamat_lengkap": document["alamat_lengkap"],
-            "no_telepon": document["no_telepon"],
-            "nama_jalan": document["nama_jalan"],
-            "desa": document["desa"],
-            "kecamatan": document["kecamatan"],
-            "kabupaten": document["kabupaten"],
-            "provinsi": document["provinsi"],
-            "kode_pos": document["kode_pos"],
-            "id_creator": document["id_creator"],
-            "status": document["status"],
-            "createdAt": dt,
-            "createdDate": tanggal,
-            "createdTime": waktu,
-            "updatedAt": updateDt,
-            "updatedDate": updateTanggal,
-            "updateTime": updateWaktu,
-            "deskripsi": document["deskripsi"],
-            "id_desa": document["id_desa"]
-        }
+            # Buat alamat lengkap
+            alamat_lengkap = f"{document['nama_jalan']}, Desa {desa_data.get('nama_desa', 'Tidak Diketahui')}, Kec. {desa_data.get('kecamatan', 'Tidak Diketahui')}, Kab. {desa_data.get('kabupaten', 'Tidak Diketahui')}, {desa_data.get('provinsi', 'Tidak Diketahui')} {document['kode_pos']}"
+            
+            # Buat data sanggar
+            sanggar_data = {
+                "_id": str(document["_id"]),
+                "image": document["image"],
+                "nama_sanggar": document["nama_sanggar"],
+                "alamat_lengkap": alamat_lengkap,
+                "no_telepon": document["no_telepon"],
+                "nama_jalan": document["nama_jalan"],
+                "desa": desa_data.get("nama_desa", "Tidak Diketahui"),
+                "kecamatan": desa_data.get("kecamatan", "Tidak Diketahui"),
+                "kabupaten": desa_data.get("kabupaten", "Tidak Diketahui"),
+                "provinsi": desa_data.get("provinsi", "Tidak Diketahui"),
+                "kode_pos": document["kode_pos"],
+                "id_creator": document["user_id"],
+                "status": document["status_id"],
+                "createdAt": dt,
+                "createdDate": tanggal,
+                "createdTime": waktu,
+                "updatedAt": updateDt,
+                "updatedDate": updateTanggal,
+                "updateTime": updateWaktu,
+                "deskripsi": document["deskripsi"],
+                "id_desa": document["desa_id"],
+                "gamelan_id": document["gamelan_id"]
+            }
 
-        sanggar.append(sanggar_data)
+            sanggar.append(sanggar_data)
     
     return {
         "sanggar_data": sanggar
@@ -74,151 +105,198 @@ async def fetch_one_sanggar(id: str):
 async def fetch_sanggar_specific_by_id(id: str):
     object_id = ObjectId(id)
     sanggar = []
+    cursor_id = collection.find({"_id": object_id})
+    
+    idDesa = []
+    async for deseid in cursor_id:  
+        idDesa.append(deseid["desa_id"]) 
+
+    alamat_lengkap_nama = await fetch_nama_alamat_by_id_desa(idDesa)
+    
     cursor = collection.find({"_id": object_id})
+    if alamat_lengkap_nama:
+        async for document in cursor:
+            desa_data = alamat_lengkap_nama.get(document["desa_id"], {})
+
+            ts = document["createdAt"]
+            
+            dt = datetime.fromtimestamp(ts)
+            tanggal = dt.date()
+            waktu = dt.time()
+
+            updateTs = document["updatedAt"]
+            updateDt = datetime.fromtimestamp(updateTs)
+            updateTanggal = updateDt.date()
+            updateWaktu = updateDt.time()
+
+            # Buat alamat lengkap
+            alamat_lengkap = f"{document['nama_jalan']}, Desa {desa_data.get('nama_desa', 'Tidak Diketahui')}, Kec. {desa_data.get('kecamatan', 'Tidak Diketahui')}, Kab. {desa_data.get('kabupaten', 'Tidak Diketahui')}, {desa_data.get('provinsi', 'Tidak Diketahui')} {document['kode_pos']}"
+            
+            # Buat data sanggar
+            sanggar_data = {
+                "_id": str(document["_id"]),
+                "image": document["image"],
+                "nama_sanggar": document["nama_sanggar"],
+                "alamat_lengkap": alamat_lengkap,
+                "no_telepon": document["no_telepon"],
+                "nama_jalan": document["nama_jalan"],
+                "desa": desa_data.get("nama_desa", "Tidak Diketahui"),
+                "kecamatan": desa_data.get("kecamatan", "Tidak Diketahui"),
+                "kabupaten": desa_data.get("kabupaten", "Tidak Diketahui"),
+                "provinsi": desa_data.get("provinsi", "Tidak Diketahui"),
+                "kode_pos": document["kode_pos"],
+                "id_creator": document["user_id"],
+                "status": document["status_id"],
+                "createdAt": dt,
+                "createdDate": tanggal,
+                "createdTime": waktu,
+                "updatedAt": updateDt,
+                "updatedDate": updateTanggal,
+                "updateTime": updateWaktu,
+                "deskripsi": document["deskripsi"],
+                "id_desa": document["desa_id"],
+                "gamelan_id": document["gamelan_id"]
+            }
+
+            sanggar.append(sanggar_data)
     
-    async for document in cursor:
-        ts = document["createdAt"]
-        
-        dt = datetime.fromtimestamp(ts)
-        tanggal = dt.date()
-        waktu = dt.time()
-
-        updateTs = document["updatedAt"]
-        updateDt = datetime.fromtimestamp(updateTs)
-        updateTanggal = updateDt.date()
-        updateWaktu = updateDt.time()
-
-        sanggar_data = {
-            "_id": str(document["_id"]),
-            "image": document["image"],
-            "nama_sanggar": document["nama_sanggar"],
-            "alamat_lengkap": document["alamat_lengkap"],
-            "no_telepon": document["no_telepon"],
-            "nama_jalan": document["nama_jalan"],
-            "desa": document["desa"],
-            "kecamatan": document["kecamatan"],
-            "kabupaten": document["kabupaten"],
-            "provinsi": document["provinsi"],
-            "kode_pos": document["kode_pos"],
-            "id_creator": document["id_creator"],
-            "status": document["status"],
-            "createdAt": dt,
-            "createdDate": tanggal,
-            "createdTime": waktu,
-            "updatedAt": updateDt,
-            "updatedDate": updateTanggal,
-            "updateTime": updateWaktu,
-            "deskripsi": document["deskripsi"],
-            "id_desa": document["id_desa"]
-        }
-
-        sanggar.append(sanggar_data)
-    
-    return {"sanggar_data": sanggar}
+    return {
+        "sanggar_data": sanggar
+    }
 
 async def fetch_sanggar_specific(name: str):
     sanggar = []
+    cursor_id = collection.find({"nama_sanggar": {"$regex": f"(?i){name}"}})
+    
+    idDesa = []
+    async for deseid in cursor_id:  
+        idDesa.append(deseid["desa_id"]) 
+
+    alamat_lengkap_nama = await fetch_nama_alamat_by_id_desa(idDesa)
+    
     cursor = collection.find({"nama_sanggar": {"$regex": f"(?i){name}"}})
+    if alamat_lengkap_nama:
+        async for document in cursor:
+            desa_data = alamat_lengkap_nama.get(document["desa_id"], {})
+
+            ts = document["createdAt"]
+            
+            dt = datetime.fromtimestamp(ts)
+            tanggal = dt.date()
+            waktu = dt.time()
+
+            updateTs = document["updatedAt"]
+            updateDt = datetime.fromtimestamp(updateTs)
+            updateTanggal = updateDt.date()
+            updateWaktu = updateDt.time()
+
+            # Buat alamat lengkap
+            alamat_lengkap = f"{document['nama_jalan']}, Desa {desa_data.get('nama_desa', 'Tidak Diketahui')}, Kec. {desa_data.get('kecamatan', 'Tidak Diketahui')}, Kab. {desa_data.get('kabupaten', 'Tidak Diketahui')}, {desa_data.get('provinsi', 'Tidak Diketahui')} {document['kode_pos']}"
+            
+            # Buat data sanggar
+            sanggar_data = {
+                "_id": str(document["_id"]),
+                "image": document["image"],
+                "nama_sanggar": document["nama_sanggar"],
+                "alamat_lengkap": alamat_lengkap,
+                "no_telepon": document["no_telepon"],
+                "nama_jalan": document["nama_jalan"],
+                "desa": desa_data.get("nama_desa", "Tidak Diketahui"),
+                "kecamatan": desa_data.get("kecamatan", "Tidak Diketahui"),
+                "kabupaten": desa_data.get("kabupaten", "Tidak Diketahui"),
+                "provinsi": desa_data.get("provinsi", "Tidak Diketahui"),
+                "kode_pos": document["kode_pos"],
+                "id_creator": document["user_id"],
+                "status": document["status_id"],
+                "createdAt": dt,
+                "createdDate": tanggal,
+                "createdTime": waktu,
+                "updatedAt": updateDt,
+                "updatedDate": updateTanggal,
+                "updateTime": updateWaktu,
+                "deskripsi": document["deskripsi"],
+                "id_desa": document["desa_id"],
+                "gamelan_id": document["gamelan_id"]
+            }
+
+            sanggar.append(sanggar_data)
     
-    async for document in cursor:
-        ts = document["createdAt"]
-        
-        dt = datetime.fromtimestamp(ts)
-        tanggal = dt.date()
-        waktu = dt.time()
-
-        updateTs = document["updatedAt"]
-        updateDt = datetime.fromtimestamp(updateTs)
-        updateTanggal = updateDt.date()
-        updateWaktu = updateDt.time()
-
-        sanggar_data = {
-            "_id": str(document["_id"]),
-            "image": document["image"],
-            "nama_sanggar": document["nama_sanggar"],
-            "alamat_lengkap": document["alamat_lengkap"],
-            "no_telepon": document["no_telepon"],
-            "nama_jalan": document["nama_jalan"],
-            "desa": document["desa"],
-            "kecamatan": document["kecamatan"],
-            "kabupaten": document["kabupaten"],
-            "provinsi": document["provinsi"],
-            "kode_pos": document["kode_pos"],
-            "id_creator": document["id_creator"],
-            "status": document["status"],
-            "createdAt": dt,
-            "createdDate": tanggal,
-            "createdTime": waktu,
-            "updatedAt": updateDt,
-            "updatedDate": updateTanggal,
-            "updateTime": updateWaktu,
-            "deskripsi": document["deskripsi"],
-            "id_desa": document["id_desa"]
-        }
-
-        sanggar.append(sanggar_data)
-    
-    return {"sanggar_data": sanggar}
+    return {
+        "sanggar_data": sanggar
+    }
 
 
 async def fetch_sanggar_specific_by_id_creator(id: str):
     sanggar = []
-    cursor = collection.find({"id_creator": id})
+    cursor_id = collection.find({"user_id": id})
     
-    async for document in cursor:
-        ts = document["createdAt"]
-        
-        dt = datetime.fromtimestamp(ts)
-        tanggal = dt.date()
-        waktu = dt.time()
+    idDesa = []
+    async for deseid in cursor_id:  
+        idDesa.append(deseid["desa_id"]) 
 
-        updateTs = document["updatedAt"]
-        updateDt = datetime.fromtimestamp(updateTs)
-        updateTanggal = updateDt.date()
-        updateWaktu = updateDt.time()
-
-        sanggar_data = {
-            "_id": str(document["_id"]),
-            "image": document["image"],
-            "nama_sanggar": document["nama_sanggar"],
-            "alamat_lengkap": document["alamat_lengkap"],
-            "no_telepon": document["no_telepon"],
-            "nama_jalan": document["nama_jalan"],
-            "desa": document["desa"],
-            "kecamatan": document["kecamatan"],
-            "kabupaten": document["kabupaten"],
-            "provinsi": document["provinsi"],
-            "kode_pos": document["kode_pos"],
-            "id_creator": document["id_creator"],
-            "status": document["status"],
-            "createdAt": dt,
-            "createdDate": tanggal,
-            "createdTime": waktu,
-            "updatedAt": updateDt,
-            "updatedDate": updateTanggal,
-            "updateTime": updateWaktu,
-            "deskripsi": document["deskripsi"],
-            "id_desa": document["id_desa"]
-        }
-        
-        sanggar.append(sanggar_data)
+    alamat_lengkap_nama = await fetch_nama_alamat_by_id_desa(idDesa)
     
-    return {"sanggar_data": sanggar}
+    cursor = collection.find({"user_id": id})
+    if alamat_lengkap_nama:
+        async for document in cursor:
+            desa_data = alamat_lengkap_nama.get(document["desa_id"], {})
+
+            ts = document["createdAt"]
+            
+            dt = datetime.fromtimestamp(ts)
+            tanggal = dt.date()
+            waktu = dt.time()
+
+            updateTs = document["updatedAt"]
+            updateDt = datetime.fromtimestamp(updateTs)
+            updateTanggal = updateDt.date()
+            updateWaktu = updateDt.time()
+
+            # Buat alamat lengkap
+            alamat_lengkap = f"{document['nama_jalan']}, Desa {desa_data.get('nama_desa', 'Tidak Diketahui')}, Kec. {desa_data.get('kecamatan', 'Tidak Diketahui')}, Kab. {desa_data.get('kabupaten', 'Tidak Diketahui')}, {desa_data.get('provinsi', 'Tidak Diketahui')} {document['kode_pos']}"
+            
+            # Buat data sanggar
+            sanggar_data = {
+                "_id": str(document["_id"]),
+                "image": document["image"],
+                "nama_sanggar": document["nama_sanggar"],
+                "alamat_lengkap": alamat_lengkap,
+                "no_telepon": document["no_telepon"],
+                "nama_jalan": document["nama_jalan"],
+                "desa": desa_data.get("nama_desa", "Tidak Diketahui"),
+                "kecamatan": desa_data.get("kecamatan", "Tidak Diketahui"),
+                "kabupaten": desa_data.get("kabupaten", "Tidak Diketahui"),
+                "provinsi": desa_data.get("provinsi", "Tidak Diketahui"),
+                "kode_pos": document["kode_pos"],
+                "id_creator": document["user_id"],
+                "status": document["status_id"],
+                "createdAt": dt,
+                "createdDate": tanggal,
+                "createdTime": waktu,
+                "updatedAt": updateDt,
+                "updatedDate": updateTanggal,
+                "updateTime": updateWaktu,
+                "deskripsi": document["deskripsi"],
+                "id_desa": document["desa_id"],
+                "gamelan_id": document["gamelan_id"]
+            }
+
+            sanggar.append(sanggar_data)
+    
+    return {
+        "sanggar_data": sanggar
+    }
     
 async def create_sanggar_data(
     image: str, 
-    nama: str, 
-    alamat: str, 
-    no_telepon: str, 
-    nama_jalan: str, 
-    desa: str, 
-    kecamatan: str,
-    kabupaten: str,
-    provinsi: str,
+    nama: str,
+    nama_jalan: str,
     kode_pos: str,
+    no_telepon: str, 
     deskripsi: str,
-    id_creator: str,
-    id_desa: str
+    gamelan_id: list[str],
+    desa_id: str,
+    user_id: str
     ):
     
     data_sanggar: SanggarData
@@ -228,20 +306,16 @@ async def create_sanggar_data(
     data_sanggar = {
         "image": image,
         "nama_sanggar": nama,
-        "alamat_lengkap": alamat,
         "no_telepon": no_telepon,
         "nama_jalan": nama_jalan,
-        "desa": desa,
-        "kecamatan": kecamatan,
-        "kabupaten": kabupaten,
-        "provinsi": provinsi,
         "kode_pos": kode_pos,
-        "id_creator": id_creator,
-        "status": "unapproved",
+        "user_id": user_id,
+        "gamelan_id": gamelan_id,
+        "status_id": "67618f9ecc4fa7bc6c0bdbbb",
         "createdAt": timestamps,
         "updatedAt": timestamps,
         "deskripsi": deskripsi,
-        "id_desa": id_desa
+        "desa_id": desa_id
     }
 
     result = await collection.insert_one(data_sanggar)
@@ -250,18 +324,14 @@ async def create_sanggar_data(
 
 async def update_sanggar_data(
     id: str, 
-    image_path: str = None,
-    nama: str= None, 
-    alamat: str= None, 
-    no_telepon: str= None,
-    nama_jalan: str= None, 
-    desa: str= None, 
-    kecamatan: str= None,
-    kabupaten: str= None,
-    provinsi: str= None,
-    kode_pos: str= None,
-    deskripsi: str= None,
-    id_desa: str= None
+    image_path: str = None, 
+    nama: str = None,
+    nama_jalan: str = None,
+    kode_pos: str = None,
+    no_telepon: str = None, 
+    deskripsi: str = None,
+    gamelan_id: list[str] = None,
+    id_desa: str = None
     ):
     
     object_id = ObjectId(id)
@@ -271,29 +341,23 @@ async def update_sanggar_data(
     if image_path:
         update_data["image"] = image_path
 
+    if gamelan_id:
+        gamelan_id = [data for data in gamelan_id if data and data != "string"]
+
+    if not gamelan_id:
+        gamelan_id = None
+
+    if gamelan_id:
+        update_data["gamelan_id"] = gamelan_id
+
     if nama:
         update_data["nama_sanggar"] = nama
-    
-    if alamat:
-        update_data["alamat_lengkap"] = alamat
     
     if no_telepon:
         update_data["no_telepon"] = no_telepon
     
     if nama_jalan:
         update_data["nama_jalan"] = nama_jalan
-
-    if desa:
-        update_data["desa"] = desa
-
-    if kecamatan:
-        update_data["kecamatan"] = kecamatan
-
-    if kabupaten:
-        update_data["kabupaten"] = kabupaten
-
-    if provinsi:
-        update_data["provinsi"] = provinsi
     
     if kode_pos:
         update_data["kode_pos"] = kode_pos
@@ -302,7 +366,7 @@ async def update_sanggar_data(
         update_data["deskripsi"] = deskripsi
 
     if id_desa:
-        update_data["id_desa"] = id_desa
+        update_data["desa_id"] = id_desa
 
     timestamps = time.time()
 
@@ -347,15 +411,16 @@ def extract_public_id(secure_url):
 
 async def approval_sanggar_data(id: str, status: str):
     object_id = ObjectId(id)
-
     timestamps = time.time()
-    
-    if status == "approved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
+    status_name: str = None
+    status_list = await get_status()
+    if status_list:
+        print(status_list)
+        for status_data in status_list["status_list"]:
+            if status_data.get("_id") == status:
+                status_name = status_data.get("status", "")
+                break    
 
-        return f"Data Sanggar Gamelan Bali {status}"
-    
-    if status == "unapproved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
+    await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
 
-        return f"Data Sanggar Gamelan Bali {status}"
+    return f"Data Gamelan Bali {status_name}"

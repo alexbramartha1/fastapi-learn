@@ -17,6 +17,7 @@ import uvicorn
 import cloudinary
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
+import time
 
 # Configuration       
 cloudinary.config( 
@@ -40,6 +41,7 @@ from databases.masyarakatdatabase import (
     fetch_all_ahli_approved,
     fetch_all_ahli_unapproved,
     fetch_all_ahli,
+    get_role,
 )
 
 from databases.sanggardatabase import (
@@ -72,7 +74,8 @@ from databases.audiogamelandatabase import (
     delete_audio_data,
     update_audio_data,
     fetch_audio_path,
-    fetch_all_audio
+    fetch_all_audio,
+    delete_audio_gamelan_spesifik
 )
 
 from databases.gamelanbalidatabase import (
@@ -104,7 +107,8 @@ from databases.audioinstrumendatabase import (
     delete_audio_instrumen_data,
     update_audio_instrumen_data,
     fetch_audio_path_instrumen,
-    fetch_all_audio_instrumen
+    fetch_all_audio_instrumen,
+    delete_audio_instrumen_spesifik_data
 )
 
 SECRET_KEY = "letsmekillyou"
@@ -361,7 +365,9 @@ async def upload_photo_profile_pengguna(id: str, files: list[UploadFile], curren
 
                 await update_photo_user(id, response["secure_url"])
 
-            return {"message": "Files saved successfully", "files": uploaded_files}
+            timestamps = time.time()
+
+            return {"message": "Files saved successfully", "files": uploaded_files, "updatedAt": timestamps}
 
         except Exception as e:
             return {"message": f"Error occurred: {str(e)}"}
@@ -373,8 +379,7 @@ def extract_public_id(secure_url):
         return match.group(1)
     else:
         return None
-
-@app.put("/api/userdata/{id}", response_model=UserData)
+    
 async def update_photo_user(id: str, foto: str):
     response = await update_user_photo(id, foto)
     if response:
@@ -390,7 +395,7 @@ async def delete_data_user(id: str, current_user: UserInDB = Depends(get_current
         raise HTTPException(404, f"There is no user with this name {id}")
 
 @app.post("/api/sanggardata/create")
-async def create_sanggar(files: list[UploadFile], id_desa: Annotated[str, Form()], nama_sanggar: Annotated[str, Form()], alamat: Annotated[str, Form()], no_telepon: Annotated[str, Form()], nama_jalan: Annotated[str, Form()], desa: Annotated[str, Form()], kecamatan: Annotated[str, Form()], kabupaten: Annotated[str, Form()], provinsi: Annotated[str, Form()], kode_pos: Annotated[str, Form()], deskripsi: Annotated[str, Form()], current_user: UserInDB = Depends(get_current_user)):
+async def create_sanggar(files: list[UploadFile], gamelan_id: Annotated[List[str], Form()], id_desa: Annotated[str, Form()], nama_sanggar: Annotated[str, Form()], no_telepon: Annotated[str, Form()], nama_jalan: Annotated[str, Form()], kode_pos: Annotated[str, Form()], deskripsi: Annotated[str, Form()], current_user: UserInDB = Depends(get_current_user)):
 
     if current_user:
         print(current_user)
@@ -406,7 +411,7 @@ async def create_sanggar(files: list[UploadFile], id_desa: Annotated[str, Form()
 
             path = saved_files[0]
             
-            response = await create_sanggar_data(path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi, id_creator, id_desa)
+            response = await create_sanggar_data(path, nama_sanggar, nama_jalan, kode_pos, no_telepon, deskripsi, gamelan_id, id_desa, id_creator)
 
             return {"message": "Data saved successfully", "response": response}
             
@@ -429,7 +434,7 @@ async def get_all_sanggar(current_user: UserInDB = Depends(get_current_user)):
         raise HTTPException(404, "There is no sanggar data!")
 
 @app.put("/api/sanggardata/update/{id}")
-async def update_data_sanggar(id: str, files: list[UploadFile] = None, id_desa: Annotated[str, Form()] = None, nama_sanggar: Annotated[str, Form()] = None, alamat: Annotated[str, Form()] = None, no_telepon: Annotated[str, Form()] = None, nama_jalan: Annotated[str, Form()] = None, desa: Annotated[str, Form()] = None, kecamatan: Annotated[str, Form()] = None, kabupaten: Annotated[str, Form()] = None, provinsi: Annotated[str, Form()] = None, kode_pos: Annotated[str, Form()] = None, deskripsi: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
+async def update_data_sanggar(id: str, files: list[UploadFile] = None, gamelan_id: Annotated[List[str], Form()] = None, id_desa: Annotated[str, Form()] = None, nama_sanggar: Annotated[str, Form()] = None, no_telepon: Annotated[str, Form()] = None, nama_jalan: Annotated[str, Form()] = None, kode_pos: Annotated[str, Form()] = None, deskripsi: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         path = ""
         if files and files[0].filename:
@@ -453,7 +458,7 @@ async def update_data_sanggar(id: str, files: list[UploadFile] = None, id_desa: 
             except Exception as e:
                 return {"message": f"Error occurred: {str(e)}"}
             
-        responseUpdate = await update_sanggar_data(id, path, nama_sanggar, alamat, no_telepon, nama_jalan, desa, kecamatan, kabupaten, provinsi, kode_pos, deskripsi, id_desa)
+        responseUpdate = await update_sanggar_data(id, path, nama_sanggar, nama_jalan, kode_pos, no_telepon, deskripsi, gamelan_id, id_desa)
         if responseUpdate:
             return responseUpdate
         raise HTTPException(404, f"There is no user with this name {id}")
@@ -530,18 +535,18 @@ async def create_data_instrumen(nama: Annotated[str, Form()], desc: Annotated[st
                 response = cloudinary.uploader.upload(file_content)
                 saved_files_image.append(response["secure_url"])
 
-            image_path = saved_files_image[0]
-
             saved_files_tridi = []
 
-            for file in files_tridi:
-                file_content = await file.read()
-                response = cloudinary.uploader.upload(file_content)
-                saved_files_tridi.append(response["secure_url"])
+            if saved_files_image:
+                for file in files_tridi:
+                    file_content = await file.read()
+                    response = cloudinary.uploader.upload(file_content)
+                    saved_files_tridi.append(response["secure_url"])
 
-            tridi_path = saved_files_tridi[0]
+                tridi_path = saved_files_tridi[0]
 
-            response = await create_instrumen_data(nama, desc, tridi_path, fungsi, image_path, bahan)
+
+            response = await create_instrumen_data(nama, desc, tridi_path, fungsi, saved_files_image, bahan)
 
             if response:
                 return {"message": "Data saved successfully", "response": response}
@@ -574,31 +579,53 @@ async def update_data_approval_instrumen_data(id: str, status: Annotated[str, Fo
 # tridi_path = file_paths_tridi[0]
 
 @app.put("/api/instrumendata/update/{id}")
-async def update_data_instrumen(id: str, nama: Annotated[str, Form()] = None, desc: Annotated[str, Form()] = None, fungsi: Annotated[str, Form()] = None, files_image: list[UploadFile] = None, files_tridi: list[UploadFile] = None, bahan: Annotated[List[str], Form()] = None, current_user: UserInDB = Depends(get_current_user)):
+async def update_data_instrumen(id: str, flagImage: Annotated[str, Form()] = None, nama: Annotated[str, Form()] = None, desc: Annotated[str, Form()] = None, fungsi: Annotated[str, Form()] = None, files_image: list[UploadFile] = None, files_tridi: list[UploadFile] = None, bahan: Annotated[List[str], Form()] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         try:
             
-            image_path = None
+            saved_files_image = []
             tridi_path = None
-            
-            if files_image[0].filename:
+            print(files_image[0].filename)
+
+            if files_image[0].filename or files_image[1].filename:
                 image_past = await get_instrumen_image_by_id(id)
-
+                print("Entry the first")
                 if image_past:
-                    public_id = extract_public_id(image_past)
+                    if flagImage == "0":
+                        if image_past[0]:
+                            public_id = extract_public_id(image_past[0])
+                            response = cloudinary.uploader.destroy(public_id)
 
-                    response = cloudinary.uploader.destroy(public_id)
+                        for file in files_image:
+                            file_content = await file.read()
+                            response = cloudinary.uploader.upload(file_content)
+                            saved_files_image.insert(0, response["secure_url"])
+                            saved_files_image.insert(1, image_past[1])   
 
-                saved_files_image = []
+                    if flagImage == "1":
+                        if image_past[1]:
+                            print(image_past[1])
+                            public_id = extract_public_id(image_past[1])
+                            response = cloudinary.uploader.destroy(public_id)
 
-                for file in files_image:
-                    file_content = await file.read()
-                    response = cloudinary.uploader.upload(file_content)
-                    saved_files_image.append(response["secure_url"])
+                        for file in files_image:
+                            file_content = await file.read()
+                            response = cloudinary.uploader.upload(file_content)
+                            saved_files_image.insert(0, image_past[0])
+                            saved_files_image.insert(1, response["secure_url"])   
 
-                image_path = saved_files_image[0]
+                    if flagImage == "2":
+                        if image_past:
+                            for imageurl in image_past:
+                                public_id = extract_public_id(imageurl)
+                                response = cloudinary.uploader.destroy(public_id)
 
-            if files_tridi[0].filename:
+                        for file in files_image:
+                            file_content = await file.read()
+                            response = cloudinary.uploader.upload(file_content)
+                            saved_files_image.append(response["secure_url"])
+
+            if files_tridi and files_tridi[0].filename:
                 tridi_past = await get_instrumen_tridi_by_id(id)
 
                 if tridi_past:
@@ -615,16 +642,17 @@ async def update_data_instrumen(id: str, nama: Annotated[str, Form()] = None, de
 
                 tridi_path = saved_files_tridi[0]
 
-            if not image_path:
-                image_path = None
+            if not saved_files_image:
+                saved_files_image = None
 
             if not tridi_path: 
                 tridi_path = None
 
-            response = await update_instrumen_data(id, nama, desc, fungsi, tridi_path, image_path, bahan)
+            print(saved_files_image)
+            response = await update_instrumen_data(id, nama, desc, fungsi, tridi_path, saved_files_image, bahan)
             
             if response:
-                return {"message": "Data saved successfully", "response": response}
+                return response
             raise HTTPException(400, "Something went wrong!")
             
         except Exception as e:
@@ -766,10 +794,18 @@ async def get_audio_by_gamelan_id(id: str, current_user: UserInDB = Depends(get_
             return response
         raise HTTPException(404, "There is no data audio Gamelan Bali")
 
-@app.delete("/api/audiogamelanbali/deletedata/")
-async def delete_data_audio_gamelan_by_id(id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+@app.delete("/api/audiogamelanbali/deletedata/{id}")
+async def delete_data_audio_gamelan_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         response = await delete_audio_data(id)
+        if response == True:
+            return "Successfully deleted audio data!"
+        raise HTTPException(404, f"There is no audio data with id {id}")
+
+@app.delete("/api/audiogamelanbali/deletedataspesifik")
+async def delete_data_audio_gamelanspesifik_by_id(id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await delete_audio_gamelan_spesifik(id)
         if response == True:
             return "Successfully deleted audio data!"
         raise HTTPException(404, f"There is no audio data with id {id}")
@@ -779,7 +815,7 @@ async def delete_data_gamelan_bali(id: str, current_user: UserInDB = Depends(get
     if current_user:
         response = await delete_gamelan_bali(id)
         if response == True:
-            return "Successfully deleted gamelan data!"
+            return {"Message":"Successfully deleted gamelan data!", "_idGamelan": id}
         raise HTTPException(404, f"There is no gamelan bali data with id {id}")
 
 @app.put("/api/gamelandata/updatedata/{id}")
@@ -1021,3 +1057,10 @@ async def delete_data_audio_instrumen_by_id(id: Annotated[List[str], Form()], cu
         if response == True:
             return "Successfully deleted audio data!"
         raise HTTPException(404, f"There is no audio data with id {id}")
+
+@app.get("/api/getallrole/listrole")
+async def get_role_list_data():
+    response = await get_role()
+    if response:
+        return response
+    raise HTTPException(404, f"There is no data role!")

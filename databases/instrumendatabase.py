@@ -16,9 +16,29 @@ client = AsyncIOMotorClient(uri)
 database = client["tugas-akhir-data"]
 
 collection = database["instrumen-gamelan"]
+collection_status = database["status"]
+collection_audio_instrumen = database["audio-instrumen"]
+
+async def fetch_audio_instrumen_by_instrumen_id(id: List[str]):
+    audio_data = []
+    
+    audio_instrumen = collection_audio_instrumen.find({"instrument_id": {"$in": id}})
+
+    async for audio_instrumen_data in audio_instrumen:
+        audio_data_instrumen = {
+            "_id": str(audio_instrumen_data["_id"]),
+            "instrument_id": audio_instrumen_data["instrument_id"],
+            "audio_name": audio_instrumen_data["audio_name"],
+            "audio_path": audio_instrumen_data["audio_path"]
+        }
+
+        audio_data.append(audio_data_instrumen)
+
+    return audio_data
 
 async def fetch_byname_instrumen(name: str):
     instrument = []
+    instrument_id_list = []
 
     cursor = collection.find({"nama_instrument": {"$regex": f"(?i){name}"}})
     
@@ -49,16 +69,24 @@ async def fetch_byname_instrumen(name: str):
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu
         }
-
+        instrument_id_list.append(str(document["_id"]))
         instrument.append(instrumen_data)
-    
-    return {
-        "instrument_data": instrument
-    }
+
+    audio_data = await fetch_audio_instrumen_by_instrumen_id(instrument_id_list)
+
+    full_data_with_audio = []
+    for instrumen_data in instrument:
+        instrumen_data["audio_data"] = [audio for audio in audio_data if audio["instrument_id"] == instrumen_data["_id"]]
+        full_data_with_audio.append(instrumen_data)
+
+    if full_data_with_audio:
+        return {
+            "instrument_data": full_data_with_audio
+        }
 
 async def fetch_all_instrumen():
-    instrumen = []
-
+    instrument = []
+    instrument_id_list = []
     cursor = collection.find({})
 
     async for document in cursor:
@@ -89,14 +117,46 @@ async def fetch_all_instrumen():
             "updateTime": updateWaktu
         }
 
-        instrumen.append(instrumen_data)
-    
-    return {
-        "instrument_data": instrumen
-    }
+        instrument_id_list.append(str(document["_id"]))
+        instrument.append(instrumen_data)
 
-async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, image_instrumen: str, bahan: List[str]):
+    audio_data = await fetch_audio_instrumen_by_instrumen_id(instrument_id_list)
+
+    full_data_with_audio = []
+    for instrumen_data in instrument:
+        instrumen_data["audio_data"] = [audio for audio in audio_data if audio["instrument_id"] == instrumen_data["_id"]]
+        full_data_with_audio.append(instrumen_data)
+
+    if full_data_with_audio:
+        return {
+            "instrument_data": full_data_with_audio
+        }
+
+async def get_status():
+    status = []
+
+    response = collection_status.find({})
+    
+    async for response_status in response:
+        status_data = {
+            "_id": str(response_status["_id"]),
+            "status": response_status["status"]
+        }
+        status.append(status_data)
+
+    return {"status_list": status}
+
+async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, image_instrumen: List[str], bahan: List[str]):
     data: InstrumenData
+
+    status = await get_status()
+    status_id: str = ""
+
+    if status:
+        for status_list in status["status_list"]:
+            if status_list.get("status") == "Pending":
+                status_id = status_list.get("_id", "")
+                break      
 
     for bahanData in bahan:
         if bahanData:
@@ -110,7 +170,7 @@ async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, i
         "trid_image": tridi,
         "fungsi": fungsi,
         "image_instrumen": image_instrumen,
-        "status": "unapproved",
+        "status": status_id,
         "bahan": bahan,
         "createdAt": timestamps,
         "updatedAt": timestamps
@@ -120,13 +180,17 @@ async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, i
 
     return {"_id": str(document.inserted_id), "nama_instrument": nama, "message": "Data created successfully"}
 
-async def update_instrumen_data(id: str, nama: str, desc: str, fungsi: str, tridi: str, image_instrumen: str, bahan: List[str]):
+async def update_instrumen_data(id: str, nama: str = None, desc: str = None, fungsi: str = None, tridi: str = None, image_instrumen: list[str] = None, bahan: list[str] = None):
     objectId = ObjectId(id)
     
     data_updated = {}
 
-    bahan = [data for data in bahan if data and data != "string"]
-
+    if bahan != None:
+        bahan = [data for data in bahan if data and data != "string"]
+    
+    if image_instrumen != None:
+        image_instrumen = [data for data in image_instrumen if data and data != "string"]
+    
     if bahan:
         data_updated["bahan"] = bahan
 
@@ -160,6 +224,7 @@ async def update_instrumen_data(id: str, nama: str, desc: str, fungsi: str, trid
 async def fetch_one_instrumen(id: str):
     object_id = ObjectId(id) 
     instrument = []
+    instrument_id_list = []
 
     document = await collection.find_one({"_id": object_id})
     
@@ -190,11 +255,20 @@ async def fetch_one_instrumen(id: str):
         "updateTime": updateWaktu
     }
 
+    instrument_id_list.append(str(document["_id"]))
     instrument.append(instrumen_data)
-    
-    return {
-        "instrument_data": instrument
-    }
+
+    audio_data = await fetch_audio_instrumen_by_instrumen_id(instrument_id_list)
+
+    full_data_with_audio = []
+    for instrumen_data in instrument:
+        instrumen_data["audio_data"] = [audio for audio in audio_data if audio["instrument_id"] == instrumen_data["_id"]]
+        full_data_with_audio.append(instrumen_data)
+
+    if full_data_with_audio:
+        return {
+            "instrument_data": full_data_with_audio
+        }
 
 async def fetch_tridi_instrumen(id: str):
     object_id = ObjectId(id)
@@ -211,18 +285,14 @@ async def fetch_image_instrumen(id: str):
 async def delete_instrument_bali(id: str):
     object_id = ObjectId(id)
 
-    instrumen_image = []
-    instrumen_tridi = []
+    instrumen_image: list = None
+    instrumen_tridi: list = None
 
     cursor = collection.find({"_id": object_id})
 
     async for document in cursor:
-        instrumen_data_image = document["image_instrumen"]
-
-        instrumen_data_tridi = document["trid_image"]
-
-        instrumen_tridi.append(instrumen_data_tridi)
-        instrumen_image.append(instrumen_data_image)
+        instrumen_tridi = document["trid_image"]
+        instrumen_image = document["image_instrumen"]
 
     for path_todelete_tridi in instrumen_tridi:
         public_id = extract_public_id(path_todelete_tridi)
@@ -248,15 +318,15 @@ def extract_public_id(secure_url):
 
 async def approval_instrunmen_data(id: str, status: str):
     object_id = ObjectId(id)
-
+    status_name: str = None
     timestamps = time.time()
-    
-    if status == "approved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
+    status_list = await get_status()
+    if status_list:
+        for status_data in status_list["status_list"]:
+            if status_data.get("_id") == status:
+                status_name = status_data.get("status", "")
+                break    
 
-        return f"Data Instrumen Gamelan Bali {status}"
-    
-    if status == "unapproved":
-        await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
+    await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
 
-        return f"Data Instrumen Gamelan Bali {status}"
+    return f"Data Instrumen Gamelan Bali {status_name}"
