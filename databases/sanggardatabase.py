@@ -303,6 +303,9 @@ async def create_sanggar_data(
     
     timestamps = time.time()
 
+    if gamelan_id:
+        gamelan_id = [re.sub(r'"', '', id_gamelan) for id_gamelan in gamelan_id]
+
     data_sanggar = {
         "image": image,
         "nama_sanggar": nama,
@@ -348,6 +351,7 @@ async def update_sanggar_data(
         gamelan_id = None
 
     if gamelan_id:
+        gamelan_id = [re.sub(r'"', '', id_gamelan) for id_gamelan in gamelan_id]
         update_data["gamelan_id"] = gamelan_id
 
     if nama:
