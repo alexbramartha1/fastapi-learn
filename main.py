@@ -914,8 +914,8 @@ async def get_gamelan_data_with_golongan(golongan: str, current_user: UserInDB =
             return response
         raise HTTPException(404, f"There is no Gamelan Data with golongan {golongan}")
 
-@app.get("/api/gamelandata/gamelanlistbyid")
-async def get_gamelan_data_with_golongan(id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+@app.post("/api/gamelandata/gamelanlistbyid")
+async def get_gamelan_data_with_id_list(id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         response = await fetch_list_gamelan_by_id(id)
 
