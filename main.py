@@ -89,6 +89,7 @@ from databases.gamelanbalidatabase import (
     fetch_all_instrument_by_gamelan_name,
     fetch_all_gamelan_by_instrument_id,
     fetch_specific_gamelan_by_golongan,
+    fetch_list_gamelan_by_id,
 )
 
 from databases.alamatdatabase import (
@@ -912,6 +913,15 @@ async def get_gamelan_data_with_golongan(golongan: str, current_user: UserInDB =
         if response:
             return response
         raise HTTPException(404, f"There is no Gamelan Data with golongan {golongan}")
+
+@app.get("/api/gamelandata/gamelanlistbyid")
+async def get_gamelan_data_with_golongan(id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_list_gamelan_by_id(id)
+
+        if response:
+            return response
+        raise HTTPException(404, f"There is no Gamelan Data")
 
 @app.get("/api/getdesa/all")
 async def fetch_all_desa(current_user: UserInDB = Depends(get_current_user)):

@@ -288,6 +288,52 @@ async def fetch_all_gamelan():
         "gamelan_data": full_data_with_audio
     }
 
+async def fetch_list_gamelan_by_id(id: List[str]):
+    object_id_list = []
+
+    for idItem in id:
+        object_id_list.append(ObjectId(idItem))
+
+    gamelan = []
+
+    document = collection.find({"_id": {"$in": object_id_list}})
+
+    async for data in document:
+        ts = data["createdAt"]
+        
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = data["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+        
+        golongan_name = await get_golongan_by_id(data["golongan_id"])
+
+        gamelan_data = {
+            "_id": str(data["_id"]),
+            "nama_gamelan": data["nama_gamelan"],
+            "golongan": golongan_name["golongan"],
+            "description": data["description"],
+            "upacara": data["upacara"],
+            "instrument_id": data["instrument_id"],
+            "status_id": data["status_id"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
+        }
+
+        gamelan.append(gamelan_data)
+
+    return {
+        "gamelan_data": gamelan
+    }
+
 async def fetch_specific_gamelan(id: str):
     object_id = ObjectId(id)
     gamelan = []
