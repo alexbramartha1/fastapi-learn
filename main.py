@@ -528,7 +528,6 @@ async def fetch_all_data_instrumen(current_user: UserInDB = Depends(get_current_
 async def create_data_instrumen(nama: Annotated[str, Form()], desc: Annotated[str, Form()], fungsi: Annotated[str, Form()], files_image: list[UploadFile], files_tridi: list[UploadFile], bahan: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         try: 
-
             saved_files_image = []
 
             for file in files_image:
@@ -747,7 +746,7 @@ async def update_data_audio(id: str, nama_audio: Annotated[str, Form()] = None, 
     try: 
         audio_path = None
 
-        if files[0].filename:
+        if files and files[0].filename:
             audioPast = await get_audio_path_by_id(id)
 
             if audioPast:
@@ -1008,11 +1007,11 @@ async def upload_audio_instrumen_data(instrument_id: Annotated[str, Form()], nam
         return {"message": f"Error occurred: {str(e)}"}
 
 @app.put("/api/audioinstrumen/updateaudio/{id}")
-async def update_data_audio(id: str, nama_audio: Annotated[str, Form()] = None, files: list[UploadFile] = None):
+async def update_data_audio_instrumen(id: str, nama_audio: Annotated[str, Form()] = None, files: list[UploadFile] = None):
     try: 
         audio_path = None
 
-        if files[0].filename:
+        if files and files[0].filename:
             audioPast = await get_audio_instrumen_path_by_id(id)
 
             if audioPast:

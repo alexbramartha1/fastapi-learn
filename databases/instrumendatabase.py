@@ -164,6 +164,11 @@ async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, i
 
     timestamps = time.time()
 
+    nama = re.sub(r'"', '', nama)
+    desc = re.sub(r'^"|"$', '', desc)
+    fungsi = re.sub(r'^"|"$', '', fungsi)
+    bahan = [re.sub(r'^"|"$', '', bahanData) for bahanData in bahan]
+
     data = {
         "nama_instrument": nama,
         "description": desc,
@@ -192,15 +197,19 @@ async def update_instrumen_data(id: str, nama: str = None, desc: str = None, fun
         image_instrumen = [data for data in image_instrumen if data and data != "string"]
     
     if bahan:
+        bahan = [re.sub(r'^"|"$', '', bahanData) for bahanData in bahan]
         data_updated["bahan"] = bahan
 
     if nama:
+        nama = re.sub(r'"', '', nama)
         data_updated["nama_instrument"] = nama
 
     if desc:
+        desc = re.sub(r'^"|"$', '', desc)
         data_updated["description"] = desc
 
     if fungsi:
+        fungsi = re.sub(r'^"|"$', '', fungsi)
         data_updated["fungsi"] = fungsi
 
     if tridi:
@@ -285,24 +294,25 @@ async def fetch_image_instrumen(id: str):
 async def delete_instrument_bali(id: str):
     object_id = ObjectId(id)
 
-    instrumen_image: list = None
-    instrumen_tridi: list = None
+    instrumen_image = []
+    instrumen_tridi = []
 
     cursor = collection.find({"_id": object_id})
 
     async for document in cursor:
-        instrumen_tridi = document["trid_image"]
-        instrumen_image = document["image_instrumen"]
+        instrumen_tridi.append(document["trid_image"])
+        instrumen_image.append(document["image_instrumen"])
 
     for path_todelete_tridi in instrumen_tridi:
         public_id = extract_public_id(path_todelete_tridi)
-
+        print(public_id)
         cloudinary.uploader.destroy(public_id)
 
     for path_todelete_image in instrumen_image:
-        public_id = extract_public_id(path_todelete_image)
+        for path in path_todelete_image:
+            public_id = extract_public_id(path)
 
-        cloudinary.uploader.destroy(public_id)
+            cloudinary.uploader.destroy(public_id)
 
     await collection.delete_one({"_id": object_id})
 
