@@ -92,7 +92,14 @@ async def delete_audio_data(id: str):
     for path_todelete_audio in audio_file:
         public_id = extract_public_id(path_todelete_audio)
 
-        cloudinary.uploader.destroy(public_id)
+        result = cloudinary.uploader.destroy(
+            public_id,
+            resource_type="video",
+            type="upload",
+            invalidate=True
+        )
+
+        print(result)
 
     await collection_audio_gamelan.delete_many({"id_gamelan": id})
 
@@ -133,19 +140,23 @@ async def delete_audio_gamelan_spesifik(id: List[str]):
     for id_data in id:  
         data_id_full = ObjectId(id_data)
         object_id.append(data_id_full)
-    print(object_id)
+
     cursor = collection_audio_gamelan.find({"_id": {"$in": object_id}})
-    print(cursor)
+
     async for document in cursor:
         audio_file.append(document["audio_path"])
 
-    print(audio_file)
-
     for path_todelete_audio in audio_file:
         public_id = extract_public_id(path_todelete_audio)
-        print(public_id)
-        response = cloudinary.uploader.destroy(public_id)
-        print(response)
+
+        result = cloudinary.uploader.destroy(
+            public_id,
+            resource_type="video",
+            type="upload",
+            invalidate=True
+        )
+
+        print(result)
 
     await collection_audio_gamelan.delete_many({"_id": {"$in": object_id}})
 

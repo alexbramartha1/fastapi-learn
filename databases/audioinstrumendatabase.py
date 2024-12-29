@@ -89,7 +89,14 @@ async def delete_audio_instrumen_data(id: str):
     for path_todelete_audio in audio_file:
         public_id = extract_public_id(path_todelete_audio)
 
-        cloudinary.uploader.destroy(public_id)
+        result = cloudinary.uploader.destroy(
+            public_id,
+            resource_type="video",  # Treat audio as video
+            type="upload",          # Default upload type
+            invalidate=True         # Clear cached copies
+        )
+
+        print(result)
 
     await collection_audio_instrumen.delete_many({"instrument_id": id})
 
@@ -111,7 +118,14 @@ async def delete_audio_instrumen_spesifik_data(id: List[str]):
     for path_todelete_audio in audio_file:
         public_id = extract_public_id(path_todelete_audio)
 
-        cloudinary.uploader.destroy(public_id)
+        result = cloudinary.uploader.destroy(
+            public_id,
+            resource_type="video",
+            type="upload",
+            invalidate=True
+        )
+
+        print(result)
 
     await collection_audio_instrumen.delete_many({"_id": {"$in": object_id}})
 
@@ -147,7 +161,14 @@ async def delete_audio_instrumen_by_id(id: str):
     cursor = await collection_audio_instrumen.find_one({"_id": objectId})
 
     public_id = extract_public_id(cursor["audio_path"])
-    cloudinary.uploader.destroy(public_id)
+    result = cloudinary.uploader.destroy(
+        public_id,
+        resource_type="video",
+        type="upload",
+        invalidate=True
+    )
+
+    print(result)
 
     await collection_audio_instrumen.delete_one({"_id": objectId})
 
