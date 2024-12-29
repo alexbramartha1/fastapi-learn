@@ -141,4 +141,14 @@ async def update_audio_instrumen_data(id: str, audio_name: str, audio_path: str)
     )
     
     return {"message": "Data updated successfully", "updated_data": updated_data}
- 
+
+async def delete_audio_instrumen_by_id(id: str):
+    objectId = ObjectId(id)
+    cursor = await collection_audio_instrumen.find_one({"_id": objectId})
+
+    public_id = extract_public_id(cursor["audio_path"])
+    cloudinary.uploader.destroy(public_id)
+
+    await collection_audio_instrumen.delete_one({"_id": objectId})
+
+    return True

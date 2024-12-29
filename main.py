@@ -109,7 +109,8 @@ from databases.audioinstrumendatabase import (
     update_audio_instrumen_data,
     fetch_audio_path_instrumen,
     fetch_all_audio_instrumen,
-    delete_audio_instrumen_spesifik_data
+    delete_audio_instrumen_spesifik_data,
+    delete_audio_instrumen_by_id,
 )
 
 SECRET_KEY = "letsmekillyou"
@@ -993,7 +994,8 @@ async def upload_audio_instrumen_data(instrument_id: Annotated[str, Form()], nam
 
         for file in files:
             file_content = await file.read()
-            response = cloudinary.uploader.upload(file_content)
+            print(file.filename)
+            response = cloudinary.uploader.upload(file_content, resource_type = "auto")
             saved_files_audio.append(response["secure_url"])
 
         audio_path = saved_files_audio[0]
@@ -1063,6 +1065,14 @@ async def get_audio_by_instrumen_id(id: str, current_user: UserInDB = Depends(ge
 async def delete_data_audio_instrumen_by_id(id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         response = await delete_audio_instrumen_data(id)
+        if response == True:
+            return "Successfully deleted audio data!"
+        raise HTTPException(404, f"There is no audio data with id {id}")
+
+@app.delete("/api/audioinstrumen/deletedataaudiobyid/{id}")
+async def delete_audio_instrumen_by_its_id(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await delete_audio_instrumen_by_id(id)
         if response == True:
             return "Successfully deleted audio data!"
         raise HTTPException(404, f"There is no audio data with id {id}")
