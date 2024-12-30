@@ -173,3 +173,15 @@ async def delete_audio_instrumen_by_id(id: str):
     await collection_audio_instrumen.delete_one({"_id": objectId})
 
     return True
+
+async def create_audio_data_instrumen_many(audio_name: str, audio_path: str, instrument_id: str):
+
+    audio_data = {
+        "instrument_id": instrument_id,
+        "audio_name": audio_name,
+        "audio_path": audio_path
+    }
+    
+    response = await collection_audio_instrumen.insert_one(audio_data)
+
+    return {"_id": str(response.inserted_id), "audio_data": audio_name, "message": "Data created successfully"}

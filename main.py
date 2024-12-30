@@ -1076,6 +1076,14 @@ async def delete_audio_instrumen_by_its_id(id: str, current_user: UserInDB = Dep
         if response == True:
             return "Successfully deleted audio data!"
         raise HTTPException(404, f"There is no audio data with id {id}")
+    
+@app.post("/api/audioinstrumen/deleteaudioinstrument/manyid")
+async def delete_audio_instrumen_by_many_id(id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await delete_audio_instrumen_spesifik_data(id)
+        if response == True:
+            return "Successfully deleted audio data!"
+        raise HTTPException(404, f"There is no audio data with id {id}")
 
 @app.get("/api/getallrole/listrole")
 async def get_role_list_data():
