@@ -588,43 +588,44 @@ async def update_data_instrumen(id: str, flagImage: Annotated[str, Form()] = Non
             tridi_path = None
             print(files_image[0].filename)
 
-            if files_image[0].filename or files_image[1].filename:
-                image_past = await get_instrumen_image_by_id(id)
-                print("Entry the first")
-                if image_past:
-                    if flagImage == "0":
-                        if image_past[0]:
-                            public_id = extract_public_id(image_past[0])
-                            response = cloudinary.uploader.destroy(public_id)
-
-                        for file in files_image:
-                            file_content = await file.read()
-                            response = cloudinary.uploader.upload(file_content)
-                            saved_files_image.insert(0, response["secure_url"])
-                            saved_files_image.insert(1, image_past[1])   
-
-                    if flagImage == "1":
-                        if image_past[1]:
-                            print(image_past[1])
-                            public_id = extract_public_id(image_past[1])
-                            response = cloudinary.uploader.destroy(public_id)
-
-                        for file in files_image:
-                            file_content = await file.read()
-                            response = cloudinary.uploader.upload(file_content)
-                            saved_files_image.insert(0, image_past[0])
-                            saved_files_image.insert(1, response["secure_url"])   
-
-                    if flagImage == "2":
-                        if image_past:
-                            for imageurl in image_past:
-                                public_id = extract_public_id(imageurl)
+            if files_image:
+                if files_image[0].filename or files_image[1].filename:
+                    image_past = await get_instrumen_image_by_id(id)
+                    print("Entry the first")
+                    if image_past:
+                        if flagImage == "0":
+                            if image_past[0]:
+                                public_id = extract_public_id(image_past[0])
                                 response = cloudinary.uploader.destroy(public_id)
 
-                        for file in files_image:
-                            file_content = await file.read()
-                            response = cloudinary.uploader.upload(file_content)
-                            saved_files_image.append(response["secure_url"])
+                            for file in files_image:
+                                file_content = await file.read()
+                                response = cloudinary.uploader.upload(file_content)
+                                saved_files_image.insert(0, response["secure_url"])
+                                saved_files_image.insert(1, image_past[1])   
+
+                        if flagImage == "1":
+                            if image_past[1]:
+                                print(image_past[1])
+                                public_id = extract_public_id(image_past[1])
+                                response = cloudinary.uploader.destroy(public_id)
+
+                            for file in files_image:
+                                file_content = await file.read()
+                                response = cloudinary.uploader.upload(file_content)
+                                saved_files_image.insert(0, image_past[0])
+                                saved_files_image.insert(1, response["secure_url"])   
+
+                        if flagImage == "2":
+                            if image_past:
+                                for imageurl in image_past:
+                                    public_id = extract_public_id(imageurl)
+                                    response = cloudinary.uploader.destroy(public_id)
+
+                            for file in files_image:
+                                file_content = await file.read()
+                                response = cloudinary.uploader.upload(file_content)
+                                saved_files_image.append(response["secure_url"])
 
             if files_tridi and files_tridi[0].filename:
                 tridi_past = await get_instrumen_tridi_by_id(id)
