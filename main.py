@@ -586,7 +586,6 @@ async def update_data_instrumen(id: str, flagImage: Annotated[str, Form()] = Non
             
             saved_files_image = []
             tridi_path = None
-            print(files_image[0].filename)
 
             if files_image:
                 if files_image[0].filename or files_image[1].filename:
