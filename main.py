@@ -729,7 +729,7 @@ async def upload_audio_data(id_gamelan: Annotated[str, Form()], deskripsi: Annot
 
         for file in files:
             file_content = await file.read()
-            response = cloudinary.uploader.upload(file_content)
+            response = cloudinary.uploader.upload(file_content, resource_type = "auto")
             saved_files_audio.append(response["secure_url"])
 
         audio_path = saved_files_audio[0]
@@ -753,13 +753,20 @@ async def update_data_audio(id: str, nama_audio: Annotated[str, Form()] = None, 
             if audioPast:
                 public_id = extract_public_id(audioPast)
 
-                response = cloudinary.uploader.destroy(public_id)
+                result = cloudinary.uploader.destroy(
+                    public_id,
+                    resource_type="video",
+                    type="upload",
+                    invalidate=True
+                )
+
+                print(result)
 
             saved_files_audio = []
 
             for file in files:
                 file_content = await file.read()
-                response = cloudinary.uploader.upload(file_content)
+                response = cloudinary.uploader.upload(file_content, resource_type = "auto")
                 saved_files_audio.append(response["secure_url"])
 
             audio_path = saved_files_audio[0]
@@ -1019,13 +1026,20 @@ async def update_data_audio_instrumen(id: str, nama_audio: Annotated[str, Form()
             if audioPast:
                 public_id = extract_public_id(audioPast)
 
-                response = cloudinary.uploader.destroy(public_id)
+                result = cloudinary.uploader.destroy(
+                    public_id,
+                    resource_type="video",
+                    type="upload",
+                    invalidate=True
+                )
+
+                print(result)
 
             saved_files_audio = []
 
             for file in files:
                 file_content = await file.read()
-                response = cloudinary.uploader.upload(file_content)
+                response = cloudinary.uploader.upload(file_content, resource_type = "auto")
                 saved_files_audio.append(response["secure_url"])
 
             audio_path = saved_files_audio[0]
