@@ -66,6 +66,7 @@ from databases.instrumendatabase import (
     fetch_image_instrumen,
     fetch_tridi_instrumen,
     approval_instrunmen_data,
+    fetch_instrumen_only_nama_id
 )
 
 from databases.audiogamelandatabase import (
@@ -1113,3 +1114,11 @@ async def get_golongan_list_data():
     if response:
         return response
     raise HTTPException(404, f"There is no data golongan!")
+
+@app.get("/api/fetchinstrument/onlynameandid")
+async def fetch_instrument_name_id(current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_instrumen_only_nama_id()
+        if response:
+            return response
+        raise HTTPException(404, f"There is no instrument data")

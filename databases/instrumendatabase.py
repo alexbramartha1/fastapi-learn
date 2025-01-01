@@ -132,6 +132,23 @@ async def fetch_all_instrumen():
             "instrument_data": full_data_with_audio
         }
 
+async def fetch_instrumen_only_nama_id():
+    instrument = []
+    cursor = collection.find({}, {"nama_instrument": 1})
+
+    async for document in cursor:
+        instrumen_data = {
+            "_id": str(document["_id"]),
+            "nama_instrument": document["nama_instrument"],
+        }
+
+        instrument.append(instrumen_data)
+
+    return {
+        "instrument_data": instrument
+    }
+
+
 async def get_status():
     status = []
 
