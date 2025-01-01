@@ -90,6 +90,7 @@ from databases.gamelanbalidatabase import (
     fetch_all_gamelan_by_instrument_id,
     fetch_specific_gamelan_by_golongan,
     fetch_list_gamelan_by_id,
+    get_golongan
 )
 
 from databases.alamatdatabase import (
@@ -1105,3 +1106,10 @@ async def get_role_list_data():
     if response:
         return response
     raise HTTPException(404, f"There is no data role!")
+
+@app.get("/api/getallgolongan/listgolongan")
+async def get_golongan_list_data():
+    response = await get_golongan()
+    if response:
+        return response
+    raise HTTPException(404, f"There is no data golongan!")
