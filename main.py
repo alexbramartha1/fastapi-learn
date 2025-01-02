@@ -831,56 +831,6 @@ async def delete_data_gamelan_bali(id: str, current_user: UserInDB = Depends(get
 @app.put("/api/gamelandata/updatedata/{id}")
 async def update_data_gamelan_bali(id: str, nama_gamelan: Annotated[str, Form()] = None, golongan: Annotated[str, Form()] = None, description: Annotated[str, Form()] = None, upacara: Annotated[List[str], Form()] = None, instrument_id: Annotated[List[str], Form()] = None,  current_user: UserInDB = Depends(get_current_user)):
     if current_user:
-        # old_audio_list = []
-        # get_old_audio = await get_specific_gamelan_bali_id(id)
-
-        # for data_for_old_audio in get_old_audio:
-        #     data_audio_old = data_for_old_audio["audio_gamelan"]
-            
-        #     for data_old_audio in data_audio_old:
-        #         old_audio_list.append(data_old_audio)
-        #         print(data_old_audio)
-
-        # if audio_gamelan:
-        #     try:
-        #         # Parse and convert audio_gamelan JSON data to a list of Audio objects
-        #         audio_gamelan_list = [Audio(**item) for item in json.loads(audio_gamelan)]
-                
-        #         audio_gamelan_list = [data for data in audio_gamelan_list if  (data.audio_name and data.audio_path) and (data.audio_name != "string" and data.audio_path != "string")]
-                
-        #         # Identifikasi audio yang dihapus
-        #         removed_audio = [audio for audio in old_audio_list if audio not in audio_gamelan_list]
-
-        #         # Identifikasi audio yang ditambahkan
-        #         added_audio = [audio for audio in audio_gamelan_list if audio not in old_audio_list]
-
-        #         for audio_past in removed_audio:
-        #             if os.path.exists(audio_past):
-        #                 os.remove(audio_past)
-        #                 print(f"The file {audio_past} has been deleted.")
-        #             else:
-        #                 print(f"The file {audio_past} does not exist.")
-
-        #         saved_files_image = []
-        #         file_paths_image = []
-
-        #         for file_image in files_image:
-        #             file_path = os.path.join(r"C:\Users\Alex Bramartha\Downloads\fastapi-learn\files\images\instrumenimage", file_image.filename)
-                    
-        #             with open(file_path, "wb") as f:
-        #                 f.write(file_image.file.read())
-                    
-        #             saved_files_image.append(file_image.filename)
-        #             file_paths_image.append(str(file_path))
-
-        #         image_path = file_paths_image[0]   
-
-        #         # Convert each Audio object to a dictionary
-        #         audio_gamelan_dicts = [audio.dict() for audio in audio_gamelan_list]
-
-        #     except json.JSONDecodeError:
-        #         raise HTTPException(400, "Invalid JSON format for audio_gamelan")
-
         response = await update_gamelan_data(id, nama_gamelan, golongan, description, instrument_id, upacara)
 
         if response:

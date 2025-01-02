@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from fastapi.encoders import jsonable_encoder
 import json
 from fastapi import FastAPI, HTTPException
-import os
+import re
 import time
 from datetime import datetime
 
@@ -537,17 +537,6 @@ async def fetch_byname_gamelan(nama_gamelan: str):
     }
 
 async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str, upacara: List[str], instrument_id: List[str]):
-    # try:
-    #     # Parse and convert audio_gamelan JSON data to a list of Audio objects
-    #     audio_gamelan_list = [Audio(**item) for item in json.loads(audio_gamelan)]
-        
-    #     # Convert each Audio object to a dictionary
-    #     audio_gamelan_dicts = [audio.dict() for audio in audio_gamelan_list]
-
-    # except json.JSONDecodeError:
-    #     raise HTTPException(400, "Invalid JSON format for audio_gamelan")
-
-    # print(audio_gamelan_dicts)
     status = await get_status()
     status_id: str = ""
 
@@ -558,6 +547,9 @@ async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str
                 break       
 
     timestamps = time.time()
+
+    upacara = [re.sub(r'"', '', data) for data in upacara]
+    instrument_id = [re.sub(r'"', '', data) for data in instrument_id]
 
     gamelan_data = {
         "nama_gamelan": nama_gamelan,
@@ -589,27 +581,9 @@ async def approval_gamelan_data(id: str, status: str):
 
     return f"Data Gamelan Bali {status_name}"
 
-async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, description: str, instrument_id: List[str], upacara: List[str]):
+async def update_gamelan_data(id: str, nama_gamelan: str = None, golongan: str = None, description: str = None, instrument_id: List[str] = None, upacara: List[str] = None):
     object_id = ObjectId(id)
     updated_data = {}
-
-    # if not audio_gamelan:
-    #     audio_gamelan == None
-
-    # if audio_gamelan:
-    #     try:
-    #         # Parse and convert audio_gamelan JSON data to a list of Audio objects
-    #         audio_gamelan_list = [Audio(**item) for item in json.loads(audio_gamelan)]
-            
-    #         audio_gamelan_list = [data for data in audio_gamelan_list if  (data.audio_name and data.audio_path) and (data.audio_name != "string" and data.audio_path != "string")]
-
-    #         # Convert each Audio object to a dictionary
-    #         audio_gamelan_dicts = [audio.dict() for audio in audio_gamelan_list]
-
-    #     except json.JSONDecodeError:
-    #         raise HTTPException(400, "Invalid JSON format for audio_gamelan")
-
-    #     print(audio_gamelan_dicts)
     
     if instrument_id:
         instrument_id = [data for data in instrument_id if data and data != "string"]
@@ -623,10 +597,6 @@ async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, descrip
     if not upacara:
         upacara = None
 
-    # print(audio_gamelan)
-    print(instrument_id)
-    print(upacara)
-
     if nama_gamelan:
         updated_data["nama_gamelan"] = nama_gamelan
 
@@ -637,12 +607,11 @@ async def update_gamelan_data(id: str, nama_gamelan: str, golongan: str, descrip
         updated_data["description"] = description
     
     if upacara:
+        upacara = [re.sub(r'"', '', data) for data in upacara]
         updated_data["upacara"] = upacara
-    
-    # if audio_gamelan:
-    #     updated_data["audio_gamelan"] = audio_gamelan_dicts
-    
+
     if instrument_id:
+        instrument_id = [re.sub(r'"', '', data) for data in instrument_id]
         updated_data["instrument_id"] = instrument_id
 
     print(updated_data)
