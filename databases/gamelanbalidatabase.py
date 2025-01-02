@@ -259,7 +259,7 @@ async def fetch_all_gamelan():
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
-            "golongan_id": instrument["golongan_id"],
+            "golongan_id": data["golongan_id"],
             "golongan": golongan_name["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
@@ -318,7 +318,7 @@ async def fetch_list_gamelan_by_id(id: List[str]):
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
-            "golongan_id": instrument["golongan_id"],
+            "golongan_id": data["golongan_id"],
             "golongan": golongan_name["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
@@ -365,7 +365,7 @@ async def fetch_specific_gamelan(id: str):
         gamelan_data = {
             "_id": str(data["_id"]),
             "nama_gamelan": data["nama_gamelan"],
-            "golongan_id": instrument["golongan_id"],
+            "golongan_id": data["golongan_id"],
             "golongan": golongan_name["golongan"],
             "description": data["description"],
             "upacara": data["upacara"],
