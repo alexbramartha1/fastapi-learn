@@ -812,8 +812,8 @@ async def delete_data_audio_gamelan_by_id(id: str, current_user: UserInDB = Depe
             return "Successfully deleted audio data!"
         raise HTTPException(404, f"There is no audio data with id {id}")
 
-@app.delete("/api/audiogamelanbali/deletedataspesifik")
-async def delete_data_audio_gamelanspesifik_by_id(id: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+@app.delete("/api/audiogamelanbali/deletedataspesifik/{id}")
+async def delete_data_audio_gamelanspesifik_by_id(id: str, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         response = await delete_audio_gamelan_spesifik(id)
         if response == True:

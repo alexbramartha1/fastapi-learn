@@ -133,31 +133,22 @@ async def update_audio_data(id: str, audio_name: str, audio_path: str, deskripsi
     
     return {"message": "Data updated successfully", "updated_data": updated_data}
  
-async def delete_audio_gamelan_spesifik(id: List[str]):
-    object_id = []
-    audio_file = []
+async def delete_audio_gamelan_spesifik(id: str):
+    object_id = ObjectId(id)
 
-    for id_data in id:  
-        data_id_full = ObjectId(id_data)
-        object_id.append(data_id_full)
+    cursor = await collection_audio_gamelan.find_one({"_id": object_id})
+ 
+    public_id = extract_public_id(cursor["audio_path"])
 
-    cursor = collection_audio_gamelan.find({"_id": {"$in": object_id}})
+    result = cloudinary.uploader.destroy(
+        public_id,
+        resource_type="video",
+        type="upload",
+        invalidate=True
+    )
 
-    async for document in cursor:
-        audio_file.append(document["audio_path"])
+    print(result)
 
-    for path_todelete_audio in audio_file:
-        public_id = extract_public_id(path_todelete_audio)
-
-        result = cloudinary.uploader.destroy(
-            public_id,
-            resource_type="video",
-            type="upload",
-            invalidate=True
-        )
-
-        print(result)
-
-    await collection_audio_gamelan.delete_many({"_id": {"$in": object_id}})
+    await collection_audio_gamelan.delete_one({"_id": object_id})
 
     return True
