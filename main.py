@@ -91,7 +91,8 @@ from databases.gamelanbalidatabase import (
     fetch_all_gamelan_by_instrument_id,
     fetch_specific_gamelan_by_golongan,
     fetch_list_gamelan_by_id,
-    get_golongan
+    get_golongan,
+    get_status
 )
 
 from databases.alamatdatabase import (
@@ -1064,6 +1065,13 @@ async def get_golongan_list_data():
     if response:
         return response
     raise HTTPException(404, f"There is no data golongan!")
+
+@app.get("/api/getallstatus/liststatus")
+async def get_status_list_data():
+    response = await get_status()
+    if response:
+        return response
+    raise HTTPException(404, f"There is no data status!")
 
 @app.get("/api/fetchinstrument/onlynameandid")
 async def fetch_instrument_name_id(current_user: UserInDB = Depends(get_current_user)):
