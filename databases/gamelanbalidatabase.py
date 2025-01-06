@@ -235,6 +235,54 @@ async def fetch_all_instrument_by_gamelan_name(name: str):
             "instrument_data": f"There is no data instrument with this name {name}",
         }
 
+async def fetch_gamelan_by_filter(statusId: List[str], golonganId: List[str]):
+    gamelan = []
+
+    if statusId:
+        statusId = [re.sub(r'^"|"$', '', status) for status in statusId]
+
+    if golonganId:
+        golonganId = [re.sub(r'^"|"$', '', golongan) for golongan in golonganId]
+
+    document = collection.find({"golongan_id": {"$in": golonganId}, "status_id": {"$in": statusId}})
+
+    async for data in document:
+        ts = data["createdAt"]
+
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = data["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
+        golongan_name = await get_golongan_by_id(data["golongan_id"])
+
+        gamelan_data = {
+            "_id": str(data["_id"]),
+            "nama_gamelan": data["nama_gamelan"],
+            "golongan_id": data["golongan_id"],
+            "golongan": golongan_name["golongan"],
+            "description": data["description"],
+            "upacara": data["upacara"],
+            "instrument_id": data["instrument_id"],
+            "status_id": data["status_id"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
+        }
+
+        gamelan.append(gamelan_data)
+
+    return {
+        "gamelan_data": gamelan
+    }
+
 async def fetch_all_gamelan():
     gamelan = []
 

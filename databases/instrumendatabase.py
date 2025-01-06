@@ -148,7 +148,6 @@ async def fetch_instrumen_only_nama_id():
         "instrument_data": instrument
     }
 
-
 async def get_status():
     status = []
 

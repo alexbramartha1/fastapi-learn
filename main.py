@@ -92,7 +92,8 @@ from databases.gamelanbalidatabase import (
     fetch_specific_gamelan_by_golongan,
     fetch_list_gamelan_by_id,
     get_golongan,
-    get_status
+    get_status,
+    fetch_gamelan_by_filter
 )
 
 from databases.alamatdatabase import (
@@ -704,6 +705,14 @@ async def get_all_gamelan_bali(current_user: UserInDB = Depends(get_current_user
 async def get_specific_gamelan_bali_id(id: str, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         response = await fetch_specific_gamelan(id)
+        if response:
+            return response
+        raise HTTPException(404, "There is no data Gamelan Bali")
+
+@app.post("/api/gamelanbali/fetch/byfilter")
+async def get_gamelan_data_by_filter(statusId: Annotated[List[str], Form()], golonganId: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_gamelan_by_filter(statusId, golonganId)
         if response:
             return response
         raise HTTPException(404, "There is no data Gamelan Bali")
