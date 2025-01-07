@@ -338,6 +338,10 @@ async def fetch_gamelan_by_filter(statusId: List[str], golonganId: List[str]):
 
 async def fetch_sanggar_by_filter(id: str, statusId: list[str]):
     sanggar = []
+    
+    if statusId:
+        statusId = [re.sub(r'^"|"$', '', status) for status in statusId]
+
     cursor_id = collection.find({"user_id": id, "status_id": {"$in": statusId}})
     
     idDesa = []
