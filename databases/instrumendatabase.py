@@ -9,6 +9,7 @@ from datetime import datetime
 import cloudinary
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
+from typing import List
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -83,6 +84,48 @@ async def fetch_byname_instrumen(name: str):
         return {
             "instrument_data": full_data_with_audio
         }
+
+async def fetch_instrument_by_filter(statusId: List[str]):
+    instrument = []
+
+    if statusId:
+        statusId = [re.sub(r'^"|"$', '', status) for status in statusId]
+
+    cursor = collection.find({"status": {"$in": statusId}})
+
+    async for document in cursor:
+        ts = document["createdAt"]
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
+        instrumen_data = {
+            "_id": str(document["_id"]),
+            "nama_instrument": document["nama_instrument"],
+            "description": document["description"],
+            "trid_image": document["trid_image"],
+            "fungsi": document["fungsi"],
+            "image_instrumen": document["image_instrumen"],
+            "status": document["status"],
+            "bahan": document["bahan"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
+        }
+
+        instrument.append(instrumen_data)
+
+    return {
+        "instrument_data": instrument
+    }
 
 async def fetch_all_instrumen():
     instrument = []

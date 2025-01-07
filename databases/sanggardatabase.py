@@ -10,6 +10,7 @@ from datetime import datetime
 import cloudinary
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
+from typing import List
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -225,7 +226,6 @@ async def fetch_sanggar_specific(name: str):
         "sanggar_data": sanggar
     }
 
-
 async def fetch_sanggar_specific_by_id_creator(id: str):
     sanggar = []
     cursor_id = collection.find({"user_id": id})
@@ -286,7 +286,117 @@ async def fetch_sanggar_specific_by_id_creator(id: str):
     return {
         "sanggar_data": sanggar
     }
+
+
+async def fetch_gamelan_by_filter(statusId: List[str], golonganId: List[str]):
+    gamelan = []
+
+    if statusId:
+        statusId = [re.sub(r'^"|"$', '', status) for status in statusId]
+
+    if golonganId:
+        golonganId = [re.sub(r'^"|"$', '', golongan) for golongan in golonganId]
+
+    document = collection.find({"golongan_id": {"$in": golonganId}, "status_id": {"$in": statusId}})
+
+    async for data in document:
+        ts = data["createdAt"]
+
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
+
+        updateTs = data["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+
+        golongan_name = await get_golongan_by_id(data["golongan_id"])
+
+        gamelan_data = {
+            "_id": str(data["_id"]),
+            "nama_gamelan": data["nama_gamelan"],
+            "golongan_id": data["golongan_id"],
+            "golongan": golongan_name["golongan"],
+            "description": data["description"],
+            "upacara": data["upacara"],
+            "instrument_id": data["instrument_id"],
+            "status_id": data["status_id"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu
+        }
+
+        gamelan.append(gamelan_data)
+
+    return {
+        "gamelan_data": gamelan
+    }
+
+async def fetch_sanggar_by_filter(id: str, statusId: list[str]):
+    sanggar = []
+    cursor_id = collection.find({"user_id": id, "status_id": {"$in": statusId}})
     
+    idDesa = []
+    async for deseid in cursor_id:  
+        idDesa.append(deseid["desa_id"]) 
+
+    alamat_lengkap_nama = await fetch_nama_alamat_by_id_desa(idDesa)
+    
+    cursor = collection.find({"user_id": id, "status_id": {"$in": statusId}})
+    if alamat_lengkap_nama:
+        async for document in cursor:
+            desa_data = alamat_lengkap_nama.get(document["desa_id"], {})
+
+            ts = document["createdAt"]
+            
+            dt = datetime.fromtimestamp(ts)
+            tanggal = dt.date()
+            waktu = dt.time()
+
+            updateTs = document["updatedAt"]
+            updateDt = datetime.fromtimestamp(updateTs)
+            updateTanggal = updateDt.date()
+            updateWaktu = updateDt.time()
+
+            # Buat alamat lengkap
+            alamat_lengkap = f"{document['nama_jalan']}, Desa {desa_data.get('nama_desa', 'Tidak Diketahui')}, Kec. {desa_data.get('kecamatan', 'Tidak Diketahui')}, Kab. {desa_data.get('kabupaten', 'Tidak Diketahui')}, {desa_data.get('provinsi', 'Tidak Diketahui')} {document['kode_pos']}"
+            
+            # Buat data sanggar
+            sanggar_data = {
+                "_id": str(document["_id"]),
+                "image": document["image"],
+                "nama_sanggar": document["nama_sanggar"],
+                "alamat_lengkap": alamat_lengkap,
+                "no_telepon": document["no_telepon"],
+                "nama_jalan": document["nama_jalan"],
+                "desa": desa_data.get("nama_desa", "Tidak Diketahui"),
+                "kecamatan": desa_data.get("kecamatan", "Tidak Diketahui"),
+                "kabupaten": desa_data.get("kabupaten", "Tidak Diketahui"),
+                "provinsi": desa_data.get("provinsi", "Tidak Diketahui"),
+                "kode_pos": document["kode_pos"],
+                "id_creator": document["user_id"],
+                "status": document["status_id"],
+                "createdAt": dt,
+                "createdDate": tanggal,
+                "createdTime": waktu,
+                "updatedAt": updateDt,
+                "updatedDate": updateTanggal,
+                "updateTime": updateWaktu,
+                "deskripsi": document["deskripsi"],
+                "id_desa": document["desa_id"],
+                "gamelan_id": document["gamelan_id"]
+            }
+
+            sanggar.append(sanggar_data)
+    
+    return {
+        "sanggar_data": sanggar
+    }
+
 async def create_sanggar_data(
     image: str, 
     nama: str,

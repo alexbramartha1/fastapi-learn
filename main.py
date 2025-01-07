@@ -54,6 +54,7 @@ from databases.sanggardatabase import (
     fetch_sanggar_specific_by_id_creator,
     approval_sanggar_data,
     fetch_sanggar_specific_by_id,
+    fetch_sanggar_by_filter
 )
 
 from databases.instrumendatabase import (
@@ -66,7 +67,8 @@ from databases.instrumendatabase import (
     fetch_image_instrumen,
     fetch_tridi_instrumen,
     approval_instrunmen_data,
-    fetch_instrumen_only_nama_id
+    fetch_instrumen_only_nama_id,
+    fetch_instrument_by_filter
 )
 
 from databases.audiogamelandatabase import (
@@ -400,6 +402,14 @@ async def delete_data_user(id: str, current_user: UserInDB = Depends(get_current
             return "Successfully deleted user!"
         raise HTTPException(404, f"There is no user with this name {id}")
 
+@app.post("/api/sanggardata/fetch/byfilter/{id}")
+async def get_sanggar_data_by_filter(id: str, statusId: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_sanggar_by_filter(id, statusId)
+        if response:
+            return response
+        raise HTTPException(404, "There is no data Sanggar")
+
 @app.post("/api/sanggardata/create")
 async def create_sanggar(files: list[UploadFile], gamelan_id: Annotated[List[str], Form()], id_desa: Annotated[str, Form()], nama_sanggar: Annotated[str, Form()], no_telepon: Annotated[str, Form()], nama_jalan: Annotated[str, Form()], kode_pos: Annotated[str, Form()], deskripsi: Annotated[str, Form()], current_user: UserInDB = Depends(get_current_user)):
 
@@ -528,6 +538,14 @@ async def fetch_all_data_instrumen(current_user: UserInDB = Depends(get_current_
         if response:
             return response
         raise HTTPException(404, "There is no instrument data!")
+
+@app.post("/api/instrumendata/fetch/byfilter")
+async def get_instrumen_data_by_filter(statusId: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await fetch_instrument_by_filter(statusId)
+        if response:
+            return response
+        raise HTTPException(404, "There is no data Instrument Gamelan")
 
 @app.post("/api/instrumendata/create")
 async def create_data_instrumen(nama: Annotated[str, Form()], desc: Annotated[str, Form()], fungsi: Annotated[str, Form()], files_image: list[UploadFile], files_tridi: list[UploadFile], bahan: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
@@ -927,7 +945,6 @@ async def fetch_all_kecamatanby_kabupaten(id: str, current_user: UserInDB = Depe
         if response:
             return response
         raise HTTPException(404, "There is no kecamatan data!")
-
 
 @app.get("/api/getkabupaten/all")
 async def fetch_all_kabupaten(current_user: UserInDB = Depends(get_current_user)):
