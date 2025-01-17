@@ -38,9 +38,7 @@ from databases.masyarakatdatabase import (
     fetch_user_specific,
     get_user,
     create_ahli_data,
-    fetch_all_ahli_approved,
-    fetch_all_ahli_unapproved,
-    fetch_all_ahli,
+    fetch_pengguna_by_filter,
     get_role,
 )
 
@@ -300,29 +298,13 @@ async def create_data_user(nama: Annotated[str, Form()], email: Annotated[str, F
         return response
     raise HTTPException(400, "Something went wrong!")
 
-@app.get("/api/userdata/ahliapproved")
-async def get_all_ahli_approved(current_user: UserInDB = Depends(get_current_user)):
+@app.post("/api/userdata/fetchbyfilter")
+async def fetch_pengguna_by_filter_role_status(roleId: Annotated[List[str], Form()], statusId: Annotated[List[str], Form()], current_user: UserInDB = Depends(get_current_user)):
     if current_user:
-        response = await fetch_all_ahli_approved()
+        response = await fetch_pengguna_by_filter(roleId, statusId)
         if response:
             return response
-        raise HTTPException(404, "Empty Ahli Gamelan Bali Data")
-
-@app.get("/api/userdata/ahliunapproved")
-async def get_all_ahli_unapproved(current_user: UserInDB = Depends(get_current_user)):
-    if current_user:
-        response = await fetch_all_ahli_unapproved()
-        if response:
-            return response
-        raise HTTPException(404, "Empty Ahli Gamelan Bali Data")
-
-@app.get("/api/userdata/allahli")
-async def get_all_ahli(current_user: UserInDB = Depends(get_current_user)):
-    if current_user:
-        response = await fetch_all_ahli()
-        if response:
-            return response
-        raise HTTPException(404, "Empty Ahli Gamelan Bali Data")
+        raise HTTPException(404, "Empty Pengguna Data")
 
 @app.post("/api/userdata/registerahli")
 async def create_data_ahli(nama: Annotated[str, Form()], email: Annotated[str, Form()], password: Annotated[str, Form()]):

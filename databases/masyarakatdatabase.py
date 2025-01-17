@@ -211,9 +211,16 @@ async def fetch_all_user():
     
     return {"data_user": user}
 
-async def fetch_all_ahli(role: str):
+async def fetch_pengguna_by_filter(role: list[str], statusId: list[str]):
     user = []
-    cursor = collection.find({"role_id": role})
+    
+    if statusId:
+        statusId = [re.sub(r'^"|"$', '', status) for status in statusId]
+
+    if role:
+        role = [re.sub(r'^"|"$', '', roleData) for roleData in role]
+
+    cursor = collection.find({"status_id": {"$in": statusId}, "role_id": {"$in": role}})
 
     async for document in cursor:
         ts = document["createdAt"]
@@ -244,77 +251,7 @@ async def fetch_all_ahli(role: str):
 
         user.append(user_data)
     
-    return {"data_ahli": user}
-
-async def fetch_all_ahli_approved(role: str, status: str):
-    user = []
-    cursor = collection.find({"status_id": status, "role_id": role})
-
-    async for document in cursor:
-        ts = document["createdAt"]
-        dt = datetime.fromtimestamp(ts)
-        tanggal = dt.date()
-        waktu = dt.time()
-
-        updateTs = document["updatedAt"]
-        updateDt = datetime.fromtimestamp(updateTs)
-        updateTanggal = updateDt.date()
-        updateWaktu = updateDt.time()
-
-        user_data = {
-            "_id": str(document["_id"]),
-            "nama": document["nama"],
-            "email": document["email"],
-            "foto_profile": document["foto_profile"],
-            "password": document["password"],
-            "createdAt": dt,
-            "createdDate": tanggal,
-            "createdTime": waktu,
-            "updatedAt": updateDt,
-            "updatedDate": updateTanggal,
-            "updateTime": updateWaktu,
-            "role_id": document["role_id"],
-            "status_id": document["status_id"]
-        }
-
-        user.append(user_data)
-    
-    return {"data_ahli": user}
-
-async def fetch_all_ahli_unapproved(role: str, status: str):
-    user = []
-    cursor = collection.find({"status_id": status, "role_id": role})
-
-    async for document in cursor:
-        ts = document["createdAt"]
-        dt = datetime.fromtimestamp(ts)
-        tanggal = dt.date()
-        waktu = dt.time()
-
-        updateTs = document["updatedAt"]
-        updateDt = datetime.fromtimestamp(updateTs)
-        updateTanggal = updateDt.date()
-        updateWaktu = updateDt.time()
-
-        user_data = {
-            "_id": str(document["_id"]),
-            "nama": document["nama"],
-            "email": document["email"],
-            "foto_profile": document["foto_profile"],
-            "password": document["password"],
-            "createdAt": dt,
-            "createdDate": tanggal,
-            "createdTime": waktu,
-            "updatedAt": updateDt,
-            "updatedDate": updateTanggal,
-            "updateTime": updateWaktu,
-            "role_id": document["role_id"],
-            "status_id": document["status_id"]
-        }
-
-        user.append(user_data)
-    
-    return {"data_ahli": user}
+    return {"data_user": user}
 
 async def create_user_data(nama: str, email: str, password: str, role_input: str):
     document: UserData
