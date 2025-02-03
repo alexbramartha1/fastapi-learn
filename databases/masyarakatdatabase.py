@@ -93,7 +93,8 @@ async def get_user(email: str):
             updatedAtTime=str(updateWaktu),
             updatedAtDate=str(updateTanggal),
             role=user_dict["role_id"],
-            status=user_dict["status_id"]
+            status=user_dict["status_id"],
+            support_document=user_dict["support_document"]
         )
 
         return user
@@ -128,7 +129,8 @@ async def fetch_one_user(id: str):
         "updatedDate": updateTanggal,
         "updateTime": updateWaktu,
         "role_id": document["role_id"],
-        "status_id": document["status_id"]
+        "status_id": document["status_id"],
+        "support_document": document["support_document"]
     }
 
     return user_data
@@ -170,7 +172,8 @@ async def fetch_all_user_with_name(name: str):
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
             "role_id": document["role_id"],
-            "status_id": document["status_id"]
+            "status_id": document["status_id"],
+            "support_document": document["support_document"]
         }
         user.append(user_data)
     
@@ -204,7 +207,8 @@ async def fetch_all_user():
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
             "role_id": document["role_id"],
-            "status_id": document["status_id"]
+            "status_id": document["status_id"],
+            "support_document": document["support_document"]
         }
 
         user.append(user_data)
@@ -246,14 +250,15 @@ async def fetch_pengguna_by_filter(role: list[str], statusId: list[str]):
             "updatedDate": updateTanggal,
             "updateTime": updateWaktu,
             "role_id": document["role_id"],
-            "status_id": document["status_id"]
+            "status_id": document["status_id"],
+            "support_document": document["support_document"]
         }
 
         user.append(user_data)
     
     return {"data_user": user}
 
-async def create_user_data(nama: str, email: str, password: str, role_input: str):
+async def create_user_data(nama: str, email: str, password: str, role_input: str, support_document: str = None):
     document: UserData
     role = await get_role()
 
@@ -264,6 +269,9 @@ async def create_user_data(nama: str, email: str, password: str, role_input: str
             if role_item.get("_id") == role_input:
                 status_id = role_item.get("default_status_id", "")
                 break 
+    
+    if role_input == "676190f1cc4fa7bc6c0bdbc4":
+        support_document = "none"
 
     timestamps = time.time()
 
@@ -275,7 +283,8 @@ async def create_user_data(nama: str, email: str, password: str, role_input: str
         "createdAt": timestamps,
         "updatedAt": timestamps,
         "status_id": status_id,
-        "role_id": role_input 
+        "role_id": role_input,
+        "support_document": support_document 
     }
 
     result = await collection.insert_one(document)
@@ -302,13 +311,16 @@ async def create_ahli_data(nama: str, email: str, password: str):
     
     return {"_id": str(result.inserted_id), "nama": nama, "message": "Data created successfully"}
 
-async def update_user_data(id: str, email: str, nama: str):
+async def update_user_data(id: str, email: str, nama: str, support_document: str):
     object_id = ObjectId(id)
 
     update_data = {}
 
     timestamps = time.time()
     
+    if support_document: 
+        update_data["support_document"] = support_document
+
     if nama:
         update_data["nama"] = nama
 
@@ -349,18 +361,25 @@ async def delete_user_data(id: str):
     object_id = ObjectId(id)
     
     foto_profile = []
+    support_document = []
 
     cursor = collection.find({"_id": object_id})
 
     async for document in cursor:
         foto_profile_data = document["foto_profile"]
-    
+        document_support_data = document["support_document"]
+        support_document.append(document_support_data)
         foto_profile.append(foto_profile_data)
 
-    for path_todelete_foto in foto_profile:
-        public_id = extract_public_id(path_todelete_foto)
+    if foto_profile and foto_profile != "none":
+        for path_todelete_foto in foto_profile:
+            public_id = extract_public_id(path_todelete_foto)
+            cloudinary.uploader.destroy(public_id)
 
-        cloudinary.uploader.destroy(public_id)
+    if document_support_data and document_support_data != "none":
+        for path_delete_support_document in support_document:
+            public_id = extract_public_id(path_delete_support_document)
+            cloudinary.uploader.destroy(public_id)
     
     await collection.delete_one({"_id": object_id})
 

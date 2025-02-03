@@ -10,6 +10,7 @@ class UserData(BaseModel):
     updatedAt: str
     status: str
     role: str
+    support_document: str = None
 
 class UserInDB(BaseModel):
     _id: str 
@@ -24,6 +25,7 @@ class UserInDB(BaseModel):
     updatedAtDate: str
     status: str
     role: str
+    support_document: str = None
 
 class Token(BaseModel):
     access_token: str
@@ -37,6 +39,7 @@ class Token(BaseModel):
     updatedAtDate: str
     status: str
     role: str
+    support_document: str = None
     token_type: str
 
 class TokenData(BaseModel):

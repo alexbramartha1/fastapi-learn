@@ -231,11 +231,6 @@ async def fetch_all_instrument_by_gamelan_name(name: str):
             "instrument_data": data_instrumen,
         }
 
-    return {
-            "gamelan_data": f"There is no data gamelan with this name {name}",
-            "instrument_data": f"There is no data instrument with this name {name}",
-        }
-
 async def fetch_gamelan_by_filter(statusId: List[str], golonganId: List[str]):
     gamelan = []
 

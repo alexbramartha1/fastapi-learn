@@ -52,7 +52,8 @@ from databases.sanggardatabase import (
     fetch_sanggar_specific_by_id_creator,
     approval_sanggar_data,
     fetch_sanggar_specific_by_id,
-    fetch_sanggar_by_filter
+    fetch_sanggar_by_filter,
+    fetch_one_sanggar_doc
 )
 
 from databases.instrumendatabase import (
@@ -228,7 +229,8 @@ async def login_for_access_token(
             "createdAtTime": str(user.createdAtTime),
             "updatedAtTime": str(user.updatedAtTime),
             "updatedAtDate": str(user.updatedAtDate),
-            "role": str(user.role)
+            "role": str(user.role),
+            "support_document": str(user.support_document)
             }, 
         expires_delta=access_token_expires
     )
@@ -245,6 +247,7 @@ async def login_for_access_token(
         updatedAtTime=user.updatedAtTime,
         role=user.role,
         status=user.status,
+        support_document=user.support_document,
         token_type="bearer"
     )
 
@@ -288,12 +291,19 @@ async def get_user_by_id(id: str, current_user: UserInDB = Depends(get_current_u
         raise HTTPException(404, f"There is no user with this name {id}")
 
 @app.post("/api/userdata/registeruser")
-async def create_data_user(nama: Annotated[str, Form()], email: Annotated[str, Form()], password: Annotated[str, Form()], role_input: Annotated[str, Form()]):
+async def create_data_user(nama: Annotated[str, Form()], email: Annotated[str, Form()], password: Annotated[str, Form()], role_input: Annotated[str, Form()], support_document: list[UploadFile] = None):
     await get_specific_by_email(email)
     
     password_hashed = get_password_hash(password)
 
-    response = await create_user_data(nama, email, password_hashed, role_input)
+    support_doc = None
+    if support_document:
+        if support_document[0].filename:
+            file_content = await support_document[0].read()
+            response = cloudinary.uploader.upload(file_content)
+            support_doc = response["secure_url"]
+
+    response = await create_user_data(nama, email, password_hashed, role_input, support_doc)
     if response:
         return response
     raise HTTPException(400, "Something went wrong!")
@@ -318,12 +328,23 @@ async def create_data_ahli(nama: Annotated[str, Form()], email: Annotated[str, F
     raise HTTPException(400, "Something went wrong!")
 
 @app.put("/api/userdata/updateprofile/{id}")
-async def update_data_user(id: str, email: Annotated[str, Form()] = None, nama: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
+async def update_data_user(id: str, email: Annotated[str, Form()] = None, nama: Annotated[str, Form()] = None, support_document: list[UploadFile] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         if email:
             await get_specific_by_email(email)
 
-        response = await update_user_data(id, email, nama)
+        support_doc_new = None
+        if support_document:
+            if support_document[0].filename:
+                if current_user.support_document != "none":
+                    public_id = extract_public_id(current_user.support_document)
+                    cloudinary.uploader.destroy(public_id)
+
+                file_content = await support_document[0].read()
+                upload = cloudinary.uploader.upload(file_content)
+                support_doc_new = upload["secure_url"]
+
+        response = await update_user_data(id, email, nama, support_doc_new)
         if response:
             return response
         raise HTTPException(404, f"There is no user with this name {id}")
@@ -331,13 +352,6 @@ async def update_data_user(id: str, email: Annotated[str, Form()] = None, nama: 
 @app.post("/api/files/uploadphotoprofile/{id}")
 async def upload_photo_profile_pengguna(id: str, files: list[UploadFile], current_user: UserInDB = Depends(get_current_user)):
     if current_user:
-        # if os.path.exists(current_user.foto_profile):
-        #     os.remove(current_user.foto_profile)
-        #     print(f"The file {current_user.foto_profile} has been deleted.")
-        # else:
-        #     print(f"The file {current_user.foto_profile} does not exist.")
-
-
         try:
             if current_user.foto_profile != "none":
                 url_link = current_user.foto_profile
@@ -393,7 +407,7 @@ async def get_sanggar_data_by_filter(id: str, statusId: Annotated[List[str], For
         raise HTTPException(404, "There is no data Sanggar")
 
 @app.post("/api/sanggardata/create")
-async def create_sanggar(files: list[UploadFile], gamelan_id: Annotated[List[str], Form()], id_desa: Annotated[str, Form()], nama_sanggar: Annotated[str, Form()], no_telepon: Annotated[str, Form()], nama_jalan: Annotated[str, Form()], kode_pos: Annotated[str, Form()], deskripsi: Annotated[str, Form()], current_user: UserInDB = Depends(get_current_user)):
+async def create_sanggar(files: list[UploadFile], support_document: list[UploadFile], gamelan_id: Annotated[List[str], Form()], id_desa: Annotated[str, Form()], nama_sanggar: Annotated[str, Form()], no_telepon: Annotated[str, Form()], nama_jalan: Annotated[str, Form()], kode_pos: Annotated[str, Form()], deskripsi: Annotated[str, Form()], current_user: UserInDB = Depends(get_current_user)):
 
     if current_user:
         print(current_user)
@@ -401,15 +415,22 @@ async def create_sanggar(files: list[UploadFile], gamelan_id: Annotated[List[str
         
         try: 
             saved_files = []
-
+            path_doc_support = []
+            
             for file in files:
                 file_content = await file.read()
                 response = cloudinary.uploader.upload(file_content)
                 saved_files.append(response["secure_url"])
 
+            for doc_support_file in support_document:
+                file_content = await doc_support_file.read()
+                response = cloudinary.uploader.upload(file_content)
+                path_doc_support.append(response["secure_url"]) 
+
             path = saved_files[0]
-            
-            response = await create_sanggar_data(path, nama_sanggar, nama_jalan, kode_pos, no_telepon, deskripsi, gamelan_id, id_desa, id_creator)
+            path_doc_file = path_doc_support[0]
+
+            response = await create_sanggar_data(path, nama_sanggar, nama_jalan, kode_pos, no_telepon, deskripsi, gamelan_id, id_desa, id_creator, path_doc_file)
 
             return {"message": "Data saved successfully", "response": response}
             
@@ -423,6 +444,12 @@ async def get_sanggar_by_id(id: str):
         return response
     raise HTTPException(404, "There is no sanggar with this id!")
 
+async def get_sanggar_doc(id: str):
+    response = await fetch_one_sanggar_doc(id)
+    if response:
+        return response
+    raise HTTPException(404, "There is no sanggar with this id!")
+
 @app.get("/api/sanggardata/get")
 async def get_all_sanggar(current_user: UserInDB = Depends(get_current_user)):
     if current_user:
@@ -432,15 +459,15 @@ async def get_all_sanggar(current_user: UserInDB = Depends(get_current_user)):
         raise HTTPException(404, "There is no sanggar data!")
 
 @app.put("/api/sanggardata/update/{id}")
-async def update_data_sanggar(id: str, files: list[UploadFile] = None, gamelan_id: Annotated[List[str], Form()] = None, id_desa: Annotated[str, Form()] = None, nama_sanggar: Annotated[str, Form()] = None, no_telepon: Annotated[str, Form()] = None, nama_jalan: Annotated[str, Form()] = None, kode_pos: Annotated[str, Form()] = None, deskripsi: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
+async def update_data_sanggar(id: str, files: list[UploadFile] = None, support_document: list[UploadFile] = None, gamelan_id: Annotated[List[str], Form()] = None, id_desa: Annotated[str, Form()] = None, nama_sanggar: Annotated[str, Form()] = None, no_telepon: Annotated[str, Form()] = None, nama_jalan: Annotated[str, Form()] = None, kode_pos: Annotated[str, Form()] = None, deskripsi: Annotated[str, Form()] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         path = ""
+        path_doc = ""
         if files and files[0].filename:
             image = await get_sanggar_by_id(id)
 
             if image:
                 public_id = extract_public_id(image)
-
                 response = cloudinary.uploader.destroy(public_id)
 
             try: 
@@ -455,12 +482,31 @@ async def update_data_sanggar(id: str, files: list[UploadFile] = None, gamelan_i
 
             except Exception as e:
                 return {"message": f"Error occurred: {str(e)}"}
-                
-        responseUpdate = await update_sanggar_data(id, path, nama_sanggar, nama_jalan, kode_pos, no_telepon, deskripsi, gamelan_id, id_desa)
+
+        if support_document and support_document[0].filename:
+            doc_path = await get_sanggar_doc(id)
+
+            if doc_path and doc_path != "none":
+                public_id = extract_public_id(doc_path)
+                response = cloudinary.uploader.destroy(public_id)
+
+            try: 
+                saved_files_doc_new = []
+
+                for file in support_document:
+                    file_content = await file.read()
+                    response = cloudinary.uploader.upload(file_content)
+                    saved_files_doc_new.append(response["secure_url"])
+
+                path_doc = saved_files_doc_new[0]
+
+            except Exception as e:
+                return {"message": f"Error occurred: {str(e)}"}
+
+        responseUpdate = await update_sanggar_data(id, path, nama_sanggar, nama_jalan, kode_pos, no_telepon, deskripsi, gamelan_id, id_desa, path_doc)
         if responseUpdate:
             return responseUpdate
-        raise HTTPException(404, f"There is no user with this name {id}")
-
+        raise HTTPException(404, f"Error update sanggar!")
 
 @app.put("/api/sanggardata/approval/{id}")
 async def update_data_approval_sanggar_data(id: str, status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
@@ -587,7 +633,7 @@ async def update_data_approval_instrumen_data(id: str, status: Annotated[str, Fo
 async def update_data_instrumen(id: str, flagImage: Annotated[str, Form()] = None, nama: Annotated[str, Form()] = None, desc: Annotated[str, Form()] = None, fungsi: Annotated[str, Form()] = None, files_image: list[UploadFile] = None, files_tridi: list[UploadFile] = None, bahan: Annotated[List[str], Form()] = None, current_user: UserInDB = Depends(get_current_user)):
     if current_user:
         try:
-            
+
             saved_files_image = []
             tridi_path = None
 

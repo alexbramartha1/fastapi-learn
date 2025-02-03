@@ -18,6 +18,7 @@ class SanggarData(BaseModel):
     status: str
     updatedAt: str
     deskripsi: str
+    support_document: str
 
     class Config:
         from_attributes = True  # Jika ada integrasi dengan ORM di masa depan

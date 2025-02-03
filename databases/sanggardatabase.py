@@ -87,7 +87,8 @@ async def fetch_all_sanggar():
                 "updateTime": updateWaktu,
                 "deskripsi": document["deskripsi"],
                 "id_desa": document["desa_id"],
-                "gamelan_id": document["gamelan_id"]
+                "gamelan_id": document["gamelan_id"],
+                "support_document": document["support_document"]
             }
 
             sanggar.append(sanggar_data)
@@ -96,6 +97,11 @@ async def fetch_all_sanggar():
         "sanggar_data": sanggar
     }
 
+async def fetch_one_sanggar_doc(id: str):
+    object_id = ObjectId(id)
+    document = await collection.find_one({"_id": object_id})
+    doc_path = document.get("support_document")
+    return doc_path
 
 async def fetch_one_sanggar(id: str):
     object_id = ObjectId(id)
@@ -156,7 +162,8 @@ async def fetch_sanggar_specific_by_id(id: str):
                 "updateTime": updateWaktu,
                 "deskripsi": document["deskripsi"],
                 "id_desa": document["desa_id"],
-                "gamelan_id": document["gamelan_id"]
+                "gamelan_id": document["gamelan_id"],
+                "support_document": document["support_document"]
             }
 
             sanggar.append(sanggar_data)
@@ -217,14 +224,16 @@ async def fetch_sanggar_specific(name: str):
                 "updateTime": updateWaktu,
                 "deskripsi": document["deskripsi"],
                 "id_desa": document["desa_id"],
-                "gamelan_id": document["gamelan_id"]
+                "gamelan_id": document["gamelan_id"],
+                "support_document": document["support_document"]
             }
 
             sanggar.append(sanggar_data)
     
-    return {
-        "sanggar_data": sanggar
-    }
+    if sanggar:
+        return {
+            "sanggar_data": sanggar
+        }
 
 async def fetch_sanggar_specific_by_id_creator(id: str):
     sanggar = []
@@ -278,7 +287,8 @@ async def fetch_sanggar_specific_by_id_creator(id: str):
                 "updateTime": updateWaktu,
                 "deskripsi": document["deskripsi"],
                 "id_desa": document["desa_id"],
-                "gamelan_id": document["gamelan_id"]
+                "gamelan_id": document["gamelan_id"],
+                "support_document": document["support_document"]
             }
 
             sanggar.append(sanggar_data)
@@ -343,7 +353,8 @@ async def fetch_sanggar_by_filter(id: str, statusId: list[str]):
                 "updateTime": updateWaktu,
                 "deskripsi": document["deskripsi"],
                 "id_desa": document["desa_id"],
-                "gamelan_id": document["gamelan_id"]
+                "gamelan_id": document["gamelan_id"],
+                "support_document": document["support_document"]
             }
 
             sanggar.append(sanggar_data)
@@ -361,7 +372,8 @@ async def create_sanggar_data(
     deskripsi: str,
     gamelan_id: list[str],
     desa_id: str,
-    user_id: str
+    user_id: str,
+    support_document: str
     ):
     
     data_sanggar: SanggarData
@@ -383,7 +395,8 @@ async def create_sanggar_data(
         "createdAt": timestamps,
         "updatedAt": timestamps,
         "deskripsi": deskripsi,
-        "desa_id": desa_id
+        "desa_id": desa_id,
+        "support_document": support_document
     }
 
     result = await collection.insert_one(data_sanggar)
@@ -399,7 +412,8 @@ async def update_sanggar_data(
     no_telepon: str = None, 
     deskripsi: str = None,
     gamelan_id: list[str] = None,
-    id_desa: str = None
+    id_desa: str = None,
+    support_document: str = None
     ):
     
     object_id = ObjectId(id)
@@ -437,6 +451,9 @@ async def update_sanggar_data(
     if id_desa:
         update_data["desa_id"] = id_desa
 
+    if support_document:
+        update_data["support_document"] = support_document
+
     timestamps = time.time()
 
     if update_data:
@@ -453,18 +470,25 @@ async def delete_sanggar_data(id: str):
     object_id = ObjectId(id)
 
     sanggar_image = []
+    sanggar_doc = []
 
     cursor = collection.find({"_id": object_id})
 
     async for document in cursor:
         sanggar_image_data = document["image"]
+        sanggar_doc_file = document["support_document"]
         
+        sanggar_doc.append(sanggar_doc_file)
         sanggar_image.append(sanggar_image_data)
 
     for path_todelete_sanggar in sanggar_image:
         public_id = extract_public_id(path_todelete_sanggar)
-
         cloudinary.uploader.destroy(public_id)
+
+    for path_todelete_doc in sanggar_doc:
+        if path_todelete_doc != "none":
+            public_id = extract_public_id(path_todelete_doc)
+            cloudinary.uploader.destroy(public_id)
 
     await collection.delete_one({"_id": object_id})
 
