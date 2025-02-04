@@ -215,7 +215,8 @@ async def fetch_all_instrument_by_gamelan_name(name: str):
             "trid_image": dataInstrument["trid_image"],
             "fungsi": dataInstrument["fungsi"],
             "image_instrumen": dataInstrument["image_instrumen"],
-            "bahan": dataInstrument["bahan"]
+            "bahan": dataInstrument["bahan"],
+            "status": dataInstrument["status"]
         }
 
         data_instrumen.append(instrumen_data)
