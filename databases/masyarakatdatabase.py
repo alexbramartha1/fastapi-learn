@@ -9,6 +9,10 @@ import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 import time
 from datetime import datetime
+from databases.noteadmindatabase import (
+    createNote,
+    deleteNote
+)
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -259,6 +263,7 @@ async def fetch_pengguna_by_filter(role: list[str], statusId: list[str]):
     return {"data_user": user}
 
 async def create_user_data(nama: str, email: str, password: str, role_input: str, support_document: str = None):
+    defaultNote = "Menunggu konfirmasi dari admin. Mohon ditunggu beberapa saat."
     document: UserData
     role = await get_role()
 
@@ -274,7 +279,7 @@ async def create_user_data(nama: str, email: str, password: str, role_input: str
         support_document = "none"
 
     timestamps = time.time()
-
+    
     document = {
         "nama": nama,
         "email": email,
@@ -288,7 +293,10 @@ async def create_user_data(nama: str, email: str, password: str, role_input: str
     }
 
     result = await collection.insert_one(document)
-    
+
+    if result and role_input != "676190f1cc4fa7bc6c0bdbc4":
+        await createNote(defaultNote, str(result.inserted_id), status_id)
+
     return {"_id": str(result.inserted_id), "nama": nama, "message": "Data created successfully"}
 
 async def create_ahli_data(nama: str, email: str, password: str):
@@ -373,16 +381,19 @@ async def delete_user_data(id: str):
 
     if foto_profile and foto_profile != "none":
         for path_todelete_foto in foto_profile:
-            public_id = extract_public_id(path_todelete_foto)
-            cloudinary.uploader.destroy(public_id)
+            if path_todelete_foto and path_todelete_foto != "none":
+                public_id = extract_public_id(path_todelete_foto)
+                cloudinary.uploader.destroy(public_id)
 
     if document_support_data and document_support_data != "none":
         for path_delete_support_document in support_document:
-            public_id = extract_public_id(path_delete_support_document)
-            cloudinary.uploader.destroy(public_id)
+            if path_delete_support_document and path_delete_support_document != "none":
+                public_id = extract_public_id(path_delete_support_document)
+                cloudinary.uploader.destroy(public_id)
     
     await collection.delete_one({"_id": object_id})
-
+    await deleteNote(id)
+    
     return True
 
 def extract_public_id(secure_url):

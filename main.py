@@ -118,6 +118,11 @@ from databases.audioinstrumendatabase import (
     delete_audio_instrumen_by_id,
 )
 
+from databases.noteadmindatabase import (
+    getNote,
+    updateNote
+)
+
 SECRET_KEY = "letsmekillyou"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 10000
@@ -1134,3 +1139,11 @@ async def fetch_instrument_name_id(current_user: UserInDB = Depends(get_current_
         if response:
             return response
         raise HTTPException(404, f"There is no instrument data")
+
+@app.get("/api/fetch/noteadmin/{id}")
+async def getNoteAdmin(id: str, current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await getNote(id)
+        if response:
+            return response
+        raise HTTPException(404, f"There is no note for this data!")

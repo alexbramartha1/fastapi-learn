@@ -11,6 +11,11 @@ import cloudinary
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 from typing import List
+from databases.noteadmindatabase import (
+    createNote,
+    updateNote,
+    deleteNote
+)
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -376,6 +381,7 @@ async def create_sanggar_data(
     support_document: str
     ):
     
+    defaultNote = "Menunggu konfirmasi dari admin. Mohon ditunggu beberapa saat."
     data_sanggar: SanggarData
     
     timestamps = time.time()
@@ -400,6 +406,9 @@ async def create_sanggar_data(
     }
 
     result = await collection.insert_one(data_sanggar)
+    
+    if result:
+        await createNote(defaultNote, str(result.inserted_id), "67618f9ecc4fa7bc6c0bdbbb")
 
     return {"_id": str(result.inserted_id), "nama_sanggar": nama, "message": "Data created successfully"}
 
@@ -515,5 +524,6 @@ async def approval_sanggar_data(id: str, status: str):
                 break    
 
     await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
-
+    await updateNote(id)
+    
     return f"Data Gamelan Bali {status_name}"

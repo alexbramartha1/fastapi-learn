@@ -23,6 +23,11 @@ collection_audio_gamelan = database["audio-gamelan"]
 collection_status = database["status"]
 collection_golongan = database["golongan"]
 
+from databases.noteadmindatabase import (
+    createNote,
+    updateNote
+)
+
 async def get_status():
     status = []
 
@@ -594,7 +599,7 @@ async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str
 
     upacara = [re.sub(r'"', '', data) for data in upacara]
     instrument_id = [re.sub(r'"', '', data) for data in instrument_id]
-
+    
     gamelan_data = {
         "nama_gamelan": nama_gamelan,
         "golongan_id": golongan,
