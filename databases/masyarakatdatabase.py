@@ -11,7 +11,8 @@ import time
 from datetime import datetime
 from databases.noteadmindatabase import (
     createNote,
-    deleteNote
+    deleteNote,
+    updateNote
 )
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
@@ -343,7 +344,7 @@ async def update_user_data(id: str, email: str, nama: str, support_document: str
         {"$set": update_data},
     )
 
-    document = await collection.find_one({"_id": object_id})
+    await collection.find_one({"_id": object_id})
     
     return {"message": "Successfully Updated Data!", "updated_data": update_data}
 
@@ -404,6 +405,21 @@ def extract_public_id(secure_url):
     else:
         return None
     
-# async def delete_user_data(name):
-#     await collection.delete_one({"nama": {"$regex": f"(?i){name}"}})
-#     return True
+async def approval_users_data(id: str, note: str, status: str):
+    object_id = ObjectId(id)
+
+    status_name: str = None
+    timestamps = time.time()
+    status_list = await get_status()
+    if status_list:
+        for status_data in status_list["status_list"]:
+            if status_data.get("_id") == status:
+                status_name = status_data.get("status", "")
+                break    
+
+    response = await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
+    
+    if response:
+        await updateNote(id, note, status)
+    
+    return f"Data Users {status_name}"

@@ -426,6 +426,7 @@ async def update_sanggar_data(
     ):
     
     object_id = ObjectId(id)
+    defaultNote = "Menunggu konfirmasi dari admin. Mohon ditunggu beberapa saat."
 
     update_data = {}
     
@@ -466,7 +467,17 @@ async def update_sanggar_data(
     timestamps = time.time()
 
     if update_data:
+        status = await get_status()
+        status_id: str = ""
+        if status:
+            for status_list in status["status_list"]:
+                if status_list.get("status") == "Pending":
+                    status_id = status_list.get("_id", "")
+                    break     
+        update_data["status_id"] = status_id
         update_data["updatedAt"] = timestamps
+
+        await updateNote(id, defaultNote, status_id)
 
     await collection.update_one(
         {"_id": object_id},
@@ -500,7 +511,8 @@ async def delete_sanggar_data(id: str):
             cloudinary.uploader.destroy(public_id)
 
     await collection.delete_one({"_id": object_id})
-
+    await deleteNote(id)
+    
     return True
 
 def extract_public_id(secure_url):
@@ -511,7 +523,7 @@ def extract_public_id(secure_url):
     else:
         return None
 
-async def approval_sanggar_data(id: str, status: str):
+async def approval_sanggar_data(id: str, note: str, status: str):
     object_id = ObjectId(id)
     timestamps = time.time()
     status_name: str = None
@@ -523,7 +535,9 @@ async def approval_sanggar_data(id: str, status: str):
                 status_name = status_data.get("status", "")
                 break    
 
-    await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
-    await updateNote(id)
+    response = await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
     
+    if response:
+        await updateNote(id, note, status)
+
     return f"Data Gamelan Bali {status_name}"

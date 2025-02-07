@@ -25,7 +25,8 @@ collection_golongan = database["golongan"]
 
 from databases.noteadmindatabase import (
     createNote,
-    updateNote
+    updateNote,
+    deleteNote
 )
 
 async def get_status():
@@ -589,7 +590,7 @@ async def fetch_byname_gamelan(nama_gamelan: str):
 async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str, upacara: List[str], instrument_id: List[str]):
     status = await get_status()
     status_id: str = ""
-
+    defaultNote = "Menunggu konfirmasi dari admin. Mohon ditunggu beberapa saat."
     if status:
         for status_list in status["status_list"]:
             if status_list.get("status") == "Pending":
@@ -613,11 +614,15 @@ async def create_gamelan_data(nama_gamelan: str, golongan: str, description: str
     }
     
     response = await collection.insert_one(gamelan_data)
+    
+    if response:
+        await createNote(defaultNote, str(response.inserted_id), status_id)
 
     return {"_id": str(response.inserted_id), "nama_gamelan": nama_gamelan, "message": "Data created successfully"}
 
-async def approval_gamelan_data(id: str, status: str):
+async def approval_gamelan_data(id: str, note: str, status: str):
     object_id = ObjectId(id)
+
     status_name: str = None
     timestamps = time.time()
     status_list = await get_status()
@@ -627,14 +632,18 @@ async def approval_gamelan_data(id: str, status: str):
                 status_name = status_data.get("status", "")
                 break    
 
-    await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
-
+    response = await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
+    
+    if response:
+        await updateNote(id, note, status)
+    
     return f"Data Gamelan Bali {status_name}"
 
 async def update_gamelan_data(id: str, nama_gamelan: str = None, golongan: str = None, description: str = None, instrument_id: List[str] = None, upacara: List[str] = None):
     object_id = ObjectId(id)
     updated_data = {}
-    
+    defaultNote = "Menunggu konfirmasi dari admin. Mohon ditunggu beberapa saat."
+
     if instrument_id:
         instrument_id = [data for data in instrument_id if data and data != "string"]
 
@@ -669,18 +678,28 @@ async def update_gamelan_data(id: str, nama_gamelan: str = None, golongan: str =
     timestamps = time.time()
 
     if updated_data:
+        status = await get_status()
+        status_id: str = ""
+        if status:
+            for status_list in status["status_list"]:
+                if status_list.get("status") == "Pending":
+                    status_id = status_list.get("_id", "")
+                    break     
+        updated_data["status_id"] = status_id
         updated_data["updatedAt"] = timestamps
+
+        await updateNote(id, defaultNote, status_id)
 
     await collection.update_one(
         {"_id": object_id}, 
         {"$set": updated_data}
     )
-    
+
     return {"message": "Data updated successfully", "updated_data": updated_data}
  
 async def delete_gamelan_bali(id: str):
     object_id = ObjectId(id)
 
     await collection.delete_one({"_id": object_id})
-
+    await deleteNote(id)
     return True

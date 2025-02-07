@@ -10,6 +10,11 @@ import cloudinary
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 from typing import List
+from databases.noteadmindatabase import (
+    createNote,
+    updateNote,
+    deleteNote
+)
 
 uri = "mongodb://alexbramartha14:WCknO6oCCiM8r3qC@tagamelanbaliakhir-shard-00-00.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-01.zx7dr.mongodb.net:27017,tagamelanbaliakhir-shard-00-02.zx7dr.mongodb.net:27017/?ssl=true&replicaSet=atlas-qfuxr3-shard-0&authSource=admin&retryWrites=true&w=majority&appName=TAGamelanBaliAkhir"
 client = AsyncIOMotorClient(uri)
@@ -207,6 +212,7 @@ async def get_status():
 
 async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, image_instrumen: List[str], bahan: List[str]):
     data: InstrumenData
+    defaultNote = "Menunggu konfirmasi dari admin. Mohon ditunggu beberapa saat."
 
     status = await get_status()
     status_id: str = ""
@@ -242,11 +248,15 @@ async def create_instrumen_data(nama: str, desc: str, tridi: str, fungsi: str, i
 
     document = await collection.insert_one(data)
 
+    if document:
+        await createNote(defaultNote, str(document.inserted_id), status_id)
+
     return {"_id": str(document.inserted_id), "nama_instrument": nama, "message": "Data created successfully"}
 
 async def update_instrumen_data(id: str, nama: str = None, desc: str = None, fungsi: str = None, tridi: str = None, image_instrumen: list[str] = None, bahan: list[str] = None):
     objectId = ObjectId(id)
-    
+    defaultNote = "Menunggu konfirmasi dari admin. Mohon ditunggu beberapa saat."
+
     data_updated = {}
 
     if bahan != None:
@@ -280,7 +290,17 @@ async def update_instrumen_data(id: str, nama: str = None, desc: str = None, fun
     timestamps = time.time()
     
     if data_updated:
+        status = await get_status()
+        status_id: str = ""
+        if status:
+            for status_list in status["status_list"]:
+                if status_list.get("status") == "Pending":
+                    status_id = status_list.get("_id", "")
+                    break     
+        data_updated["status_id"] = status_id
         data_updated["updatedAt"] = timestamps
+
+        await updateNote(id, defaultNote, status_id)
 
     await collection.update_one(
         {"_id": objectId},
@@ -374,6 +394,7 @@ async def delete_instrument_bali(id: str):
             cloudinary.uploader.destroy(public_id)
 
     await collection.delete_one({"_id": object_id})
+    await deleteNote(id)
 
     return True
 
@@ -385,8 +406,9 @@ def extract_public_id(secure_url):
     else:
         return None
 
-async def approval_instrunmen_data(id: str, status: str):
+async def approval_instrunmen_data(id: str, note: str, status: str):
     object_id = ObjectId(id)
+
     status_name: str = None
     timestamps = time.time()
     status_list = await get_status()
@@ -396,6 +418,9 @@ async def approval_instrunmen_data(id: str, status: str):
                 status_name = status_data.get("status", "")
                 break    
 
-    await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
+    response = await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
+    
+    if response:
+        await updateNote(id, note, status)
 
     return f"Data Instrumen Gamelan Bali {status_name}"

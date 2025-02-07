@@ -514,9 +514,9 @@ async def update_data_sanggar(id: str, files: list[UploadFile] = None, support_d
         raise HTTPException(404, f"Error update sanggar!")
 
 @app.put("/api/sanggardata/approval/{id}")
-async def update_data_approval_sanggar_data(id: str, status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
+async def update_data_approval_sanggar_data(id: str, note: Annotated[str, Form()], status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
     if current_user:
-        response = await approval_sanggar_data(id, status)
+        response = await approval_sanggar_data(id, note, status)
 
         if response: 
             return response
@@ -612,9 +612,9 @@ async def create_data_instrumen(nama: Annotated[str, Form()], desc: Annotated[st
             return {"message": f"Error occurred: {str(e)}"}
 
 @app.put("/api/instrumendata/approval/{id}")
-async def update_data_approval_instrumen_data(id: str, status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
+async def update_data_approval_instrumen_data(id: str, note: Annotated[str, Form()], status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
     if current_user:
-        response = await approval_instrunmen_data(id, status)
+        response = await approval_instrunmen_data(id, note, status)
 
         if response: 
             return response
@@ -899,9 +899,9 @@ async def update_data_gamelan_bali(id: str, nama_gamelan: Annotated[str, Form()]
         raise HTTPException(404, f"There is no gamelan data with id {id}")
 
 @app.put("/api/gamelandata/approval/{id}")
-async def update_data_approval_gamelan_bali(id: str, status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
+async def update_data_approval_gamelan_bali(id: str, note: Annotated[str, Form()], status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
     if current_user:
-        response = await approval_gamelan_data(id, status)
+        response = await approval_gamelan_data(id, note, status)
 
         if response: 
             return response
