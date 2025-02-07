@@ -418,7 +418,7 @@ async def approval_instrunmen_data(id: str, note: str, status: str):
                 status_name = status_data.get("status", "")
                 break    
 
-    response = await collection.update_one({"_id": object_id}, {"$set": {"status_id": status, "updatedAt": timestamps}})
+    response = await collection.update_one({"_id": object_id}, {"$set": {"status": status, "updatedAt": timestamps}})
     
     if response:
         await updateNote(id, note, status)
