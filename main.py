@@ -40,6 +40,7 @@ from databases.masyarakatdatabase import (
     create_ahli_data,
     fetch_pengguna_by_filter,
     get_role,
+    approval_users_data,
 )
 
 from databases.sanggardatabase import (
@@ -320,6 +321,15 @@ async def fetch_pengguna_by_filter_role_status(roleId: Annotated[List[str], Form
         if response:
             return response
         raise HTTPException(404, "Empty Pengguna Data")
+
+@app.put("/api/userdata/approval/{id}")
+async def update_data_approval_users_data(id: str, note: Annotated[str, Form()], status: Annotated[str, Form()],  current_user: UserInDB = Depends(get_current_user)):
+    if current_user:
+        response = await approval_users_data(id, note, status)
+
+        if response: 
+            return response
+        raise HTTPException(404, f"There is no users data with id {id}")
 
 @app.post("/api/userdata/registerahli")
 async def create_data_ahli(nama: Annotated[str, Form()], email: Annotated[str, Form()], password: Annotated[str, Form()]):
