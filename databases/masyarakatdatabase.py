@@ -111,34 +111,35 @@ async def fetch_one_user(id: str):
     
     document = await collection.find_one({"_id": object_id})
 
-    ts = document["createdAt"]
-    dt = datetime.fromtimestamp(ts)
-    tanggal = dt.date()
-    waktu = dt.time()
+    if document:
+        ts = document["createdAt"]
+        dt = datetime.fromtimestamp(ts)
+        tanggal = dt.date()
+        waktu = dt.time()
 
-    updateTs = document["updatedAt"]
-    updateDt = datetime.fromtimestamp(updateTs)
-    updateTanggal = updateDt.date()
-    updateWaktu = updateDt.time()
-    
-    user_data = {
-        "_id": str(document["_id"]),
-        "nama": document["nama"],
-        "email": document["email"],
-        "foto_profile": document["foto_profile"],
-        "password": document["password"],
-        "createdAt": dt,
-        "createdDate": tanggal,
-        "createdTime": waktu,
-        "updatedAt": updateDt,
-        "updatedDate": updateTanggal,
-        "updateTime": updateWaktu,
-        "role_id": document["role_id"],
-        "status_id": document["status_id"],
-        "support_document": document["support_document"]
-    }
+        updateTs = document["updatedAt"]
+        updateDt = datetime.fromtimestamp(updateTs)
+        updateTanggal = updateDt.date()
+        updateWaktu = updateDt.time()
+        
+        user_data = {
+            "_id": str(document["_id"]),
+            "nama": document["nama"],
+            "email": document["email"],
+            "foto_profile": document["foto_profile"],
+            "password": document["password"],
+            "createdAt": dt,
+            "createdDate": tanggal,
+            "createdTime": waktu,
+            "updatedAt": updateDt,
+            "updatedDate": updateTanggal,
+            "updateTime": updateWaktu,
+            "role_id": document["role_id"],
+            "status_id": document["status_id"],
+            "support_document": document["support_document"]
+        }
 
-    return user_data
+        return user_data
 
 async def fetch_user_specific(email: str):
     local_part, domain = email.split('@')
